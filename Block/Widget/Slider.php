@@ -9,12 +9,15 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\BannerSliderFrontendUi\Block\Widget;
 
+use Hryvinskyi\BannerSlider\Model\Banner;
 use Hryvinskyi\BannerSlider\Model\ResourceModel\Banner\CollectionFactory as BannerCollectionFactory;
 use Hryvinskyi\BannerSlider\Model\Slider as SliderModel;
 use Hryvinskyi\BannerSliderApi\Api\Data\BannerInterface;
 use Hryvinskyi\BannerSliderApi\Api\Data\SliderInterface;
-use Hryvinskyi\BannerSliderApi\Api\SliderRepositoryInterface;
+use Hryvinskyi\BannerSliderApi\Api\Slider\Locator\SliderLocatorInterface;
 use Hryvinskyi\BannerSliderFrontendUi\ViewModel\BannerRenderer;
+use Magento\Customer\Model\Context as CustomerContext;
+use Magento\Framework\App\Http\Context as HttpContext;
 use Magento\Framework\DataObject\IdentityInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\View\Element\Template;
@@ -37,25 +40,28 @@ class Slider extends Template implements BlockInterface, IdentityInterface
 
     /**
      * @param Template\Context $context
-     * @param SliderRepositoryInterface $sliderRepository
+     * @param SliderLocatorInterface $sliderLocator
      * @param BannerCollectionFactory $bannerCollectionFactory
      * @param BannerRenderer $bannerRenderer
+     * @param HttpContext $httpContext
      * @param array $data
      */
     public function __construct(
         Template\Context $context,
-        private readonly SliderRepositoryInterface $sliderRepository,
+        private readonly SliderLocatorInterface $sliderLocator,
         private readonly BannerCollectionFactory $bannerCollectionFactory,
         private readonly BannerRenderer $bannerRenderer,
+        private readonly HttpContext $httpContext,
         array $data = []
     ) {
         parent::__construct($context, $data);
     }
 
     /**
-     * Get slider instance
+     * Get slider instance with store and customer group validation
      *
      * @return SliderInterface|null
+     * @throws NoSuchEntityException
      */
     public function getSlider(): ?SliderInterface
     {
@@ -67,11 +73,10 @@ class Slider extends Template implements BlockInterface, IdentityInterface
                 return null;
             }
 
-            try {
-                $this->slider = $this->sliderRepository->getById($sliderId);
-            } catch (NoSuchEntityException $e) {
-                $this->slider = false;
-            }
+            $storeId = (int)$this->_storeManager->getStore()->getId();
+            $customerGroupId = (int)$this->httpContext->getValue(CustomerContext::CONTEXT_GROUP);
+
+            $this->slider = $this->sliderLocator->getById($sliderId, $storeId, $customerGroupId) ?? false;
         }
 
         return $this->slider ?: null;
@@ -81,6 +86,7 @@ class Slider extends Template implements BlockInterface, IdentityInterface
      * Get banners for the slider
      *
      * @return BannerInterface[]
+     * @throws NoSuchEntityException
      */
     public function getBanners(): array
     {
@@ -125,6 +131,8 @@ class Slider extends Template implements BlockInterface, IdentityInterface
      * Get slider JSON configuration for Splide.js
      *
      * @return string
+     * @throws NoSuchEntityException
+     * @throws \JsonException
      */
     public function getSliderConfig(): string
     {
@@ -148,12 +156,12 @@ class Slider extends Template implements BlockInterface, IdentityInterface
             'type' => $type,
             'perPage' => 1,
             'perMove' => 1,
-            'autoplay' => $hasSingleBanner ? false : $slider->isAutoPlayEnabled(),
+            'autoplay' => !$hasSingleBanner && $slider->isAutoPlayEnabled(),
             'interval' => $slider->getAutoPlayTimeout(),
             'pauseOnHover' => true,
             'pauseOnFocus' => true,
-            'arrows' => $hasSingleBanner ? false : $slider->isNavigationEnabled(),
-            'pagination' => $hasSingleBanner ? false : $slider->isPaginationEnabled(),
+            'arrows' => !$hasSingleBanner && $slider->isNavigationEnabled(),
+            'pagination' => !$hasSingleBanner && $slider->isPaginationEnabled(),
             'lazyLoad' => $slider->isLazyLoadEnabled() ? 'nearby' : false,
             'autoWidth' => $slider->isAutoWidthEnabled(),
             'autoHeight' => $slider->isAutoHeightEnabled(),
@@ -225,11 +233,29 @@ class Slider extends Template implements BlockInterface, IdentityInterface
             $identities[] = SliderModel::CACHE_TAG . '_' . $slider->getSliderId();
 
             foreach ($this->getBanners() as $banner) {
-                $identities[] = \Hryvinskyi\BannerSlider\Model\Banner::CACHE_TAG . '_' . $banner->getBannerId();
+                $identities[] = Banner::CACHE_TAG . '_' . $banner->getBannerId();
             }
         }
 
         return $identities;
+    }
+
+    /**
+     * Get cache key info for block caching with customer group variation
+     *
+     * @return array<int, string|int|null>
+     * @throws NoSuchEntityException
+     */
+    public function getCacheKeyInfo(): array
+    {
+        return [
+            'BANNER_SLIDER_WIDGET',
+            $this->_storeManager->getStore()->getId(),
+            $this->_design->getDesignTheme()->getId(),
+            $this->httpContext->getValue(CustomerContext::CONTEXT_GROUP),
+            $this->getData('slider_id'),
+            md5($this->getTemplate() . $this->getNameInLayout())
+        ];
     }
 
     /**

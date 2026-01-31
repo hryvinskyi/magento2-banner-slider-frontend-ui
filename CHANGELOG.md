@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] - 2026-01-31
+
+### Added
+- Store ID and customer group validation for slider widget
+- `HttpContext` integration for FPC-compatible customer group detection
+- `getCacheKeyInfo()` method for proper cache variation by customer group
+
+### Changed
+- Widget now uses `SliderLocatorInterface` service instead of direct collection access
+- Slider is only displayed if it matches current store and customer group assignment
+
+### Fixed
+- Widget now respects slider store and customer group restrictions
+
+## [1.0.3] - 2026-01-31
+### Fixed
+- Update autoplay method calls to match renamed interface methods 
+
 ## [1.0.2] - 2026-01-31
 
 ### Changed
