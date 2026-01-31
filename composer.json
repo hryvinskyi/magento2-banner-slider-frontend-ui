@@ -17,7 +17,8 @@
         "hryvinskyi/magento2-banner-slider-api": "*",
         "hryvinskyi/magento2-banner-slider": "*",
         "hryvinskyi/magento2-splide-js": "*",
-        "hryvinskyi/magento2-head-tag-manager": "*"
+        "hryvinskyi/magento2-head-tag-manager": "*",
+        "hryvinskyi/magento2-media-uploader": "*"
     },
     "autoload": {
         "files": [
