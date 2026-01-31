@@ -46,11 +46,12 @@ foreach ($banners as $banner) {
 }
 
 $sliderId = 'banner-slider-' . $slider->getSliderId();
-$sliderConfig = $block->getSliderConfig();
+$bannerCount = count($banners);
+$sliderConfig = $bannerCount > 1 ? $block->getSliderConfig() : null;
 ?>
 <div class="banner-slider-container" id="<?= $escaper->escapeHtmlAttr($sliderId) ?>">
-    <div class="banner-slider splide"
-         data-mage-init='{"splideWidget": <?= /* @noEscape */ $sliderConfig ?>}'>
+    <div class="banner-slider<?= $bannerCount > 1 ? ' splide' : '' ?>"
+         <?php if ($sliderConfig !== null): ?>data-mage-init='{"splideWidget": <?= /* @noEscape */ $sliderConfig ?>}'<?php endif; ?>>
         <div class="splide__track">
             <ul class="splide__list">
                 <?php foreach ($banners as $banner): ?>
@@ -59,7 +60,7 @@ $sliderConfig = $block->getSliderConfig();
                             <?= /* @noEscape */ $renderer->getVideoHtml($banner) ?>
                         <?php elseif ($renderer->isCustomType($banner)): ?>
                             <div class="banner-slider-custom-content">
-                                <?= /* @noEscape */ $banner->getContent() ?>
+                                <?= /* @noEscape */ $renderer->filterContent($banner->getContent()) ?>
                             </div>
                         <?php else: ?>
                             <?php
@@ -79,7 +80,7 @@ $sliderConfig = $block->getSliderConfig();
                                 <?php endif; ?>
                                 <?php if (!empty($bannerContent)): ?>
                                     <div class="banner-slider-content-overlay">
-                                        <?= /* @noEscape */ $bannerContent ?>
+                                        <?= /* @noEscape */ $renderer->filterContent($bannerContent) ?>
                                     </div>
                                 <?php endif; ?>
                             </div>

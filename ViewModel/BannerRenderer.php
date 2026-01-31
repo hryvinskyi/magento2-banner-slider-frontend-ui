@@ -16,6 +16,7 @@ use Hryvinskyi\BannerSliderApi\Api\Video\ProviderInterface;
 use Hryvinskyi\BannerSliderApi\Api\Video\ProviderResolverInterface;
 use Hryvinskyi\BannerSliderApi\Api\Video\VideoDataInterface;
 use Hryvinskyi\Base\Helper\Html;
+use Magento\Cms\Model\Template\FilterProvider;
 use Magento\Framework\App\Filesystem\DirectoryList;
 use Magento\Framework\Escaper;
 use Magento\Framework\Exception\NoSuchEntityException;
@@ -47,6 +48,7 @@ class BannerRenderer implements ArgumentInterface
      * @param ResponsiveCropRepositoryInterface $responsiveCropRepository
      * @param LoggerInterface $logger
      * @param Filesystem $filesystem
+     * @param FilterProvider $filterProvider
      */
     public function __construct(
         private readonly StoreManagerInterface $storeManager,
@@ -54,7 +56,8 @@ class BannerRenderer implements ArgumentInterface
         private readonly Escaper $escaper,
         private readonly ResponsiveCropRepositoryInterface $responsiveCropRepository,
         private readonly LoggerInterface $logger,
-        private readonly Filesystem $filesystem
+        private readonly Filesystem $filesystem,
+        private readonly FilterProvider $filterProvider
     ) {
     }
 
@@ -78,6 +81,29 @@ class BannerRenderer implements ArgumentInterface
     public function isCustomType(BannerInterface $banner): bool
     {
         return $banner->getType() === BannerInterface::TYPE_CUSTOM;
+    }
+
+    /**
+     * Filter content to process Magento directives like {{store url="..."}}
+     *
+     * @param string|null $content
+     * @return string
+     */
+    public function filterContent(?string $content): string
+    {
+        if ($content === null || $content === '') {
+            return '';
+        }
+
+        try {
+            return $this->filterProvider->getBlockFilter()->filter($content);
+        } catch (\Exception $e) {
+            $this->logger->error(
+                'Error filtering banner content',
+                ['error' => $e->getMessage()]
+            );
+            return $content;
+        }
     }
 
     /**
@@ -220,7 +246,7 @@ class BannerRenderer implements ArgumentInterface
 
         $overlay = '';
         if ($isBackground && !empty($overlayContent)) {
-            $overlay = Html::tag('div', $overlayContent, ['class' => 'banner-slider-video-overlay']);
+            $overlay = Html::tag('div', $this->filterContent($overlayContent), ['class' => 'banner-slider-video-overlay']);
         }
 
         return Html::tag('div', $videoHtml . $overlay, [
@@ -260,7 +286,7 @@ class BannerRenderer implements ArgumentInterface
 
         $overlay = '';
         if ($isBackground && !empty($overlayContent)) {
-            $overlay = Html::tag('div', $overlayContent, ['class' => 'banner-slider-video-overlay']);
+            $overlay = Html::tag('div', $this->filterContent($overlayContent), ['class' => 'banner-slider-video-overlay']);
         }
 
         return Html::tag('div', $iframeHtml . $overlay, [

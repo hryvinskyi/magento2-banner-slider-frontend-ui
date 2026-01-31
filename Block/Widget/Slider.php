@@ -141,16 +141,19 @@ class Slider extends Template implements BlockInterface, IdentityInterface
             $type = 'loop';
         }
 
+        $bannerCount = count($this->getBanners());
+        $hasSingleBanner = $bannerCount <= 1;
+
         $config = [
             'type' => $type,
             'perPage' => 1,
             'perMove' => 1,
-            'autoplay' => $slider->isAutoplayEnabled(),
+            'autoplay' => $hasSingleBanner ? false : $slider->isAutoplayEnabled(),
             'interval' => $slider->getAutoplayTimeout(),
             'pauseOnHover' => true,
             'pauseOnFocus' => true,
-            'arrows' => $slider->isNavigationEnabled(),
-            'pagination' => $slider->isPaginationEnabled(),
+            'arrows' => $hasSingleBanner ? false : $slider->isNavigationEnabled(),
+            'pagination' => $hasSingleBanner ? false : $slider->isPaginationEnabled(),
             'lazyLoad' => $slider->isLazyLoadEnabled() ? 'nearby' : false,
             'autoWidth' => $slider->isAutoWidthEnabled(),
             'autoHeight' => $slider->isAutoHeightEnabled(),
