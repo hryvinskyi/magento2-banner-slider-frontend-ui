@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<!--
+  ~ Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+  ~ @author: <mailto:volodymyr@hryvinskyi.com>
+  -->
+<widgets xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Widget:etc/widget.xsd">
+    <widget id="hryvinskyi_banner_slider"
+            class="Hryvinskyi\BannerSliderFrontendUi\Block\Widget\Slider"
+            placeholder_image="Hryvinskyi_BannerSliderFrontendUi::images/widget_placeholder.png">
+        <label translate="true">Banner Slider</label>
+        <description translate="true">Displays a banner slider on the page</description>
+        <parameters>
+            <parameter name="slider_id" xsi:type="select" required="true" visible="true"
+                       source_model="Hryvinskyi\BannerSliderAdminUi\Model\Source\Slider">
+                <label translate="true">Slider</label>
+            </parameter>
+            <parameter name="template" xsi:type="select" required="true" visible="true">
+                <label translate="true">Template</label>
+                <options>
+                    <option name="default" value="Hryvinskyi_BannerSliderFrontendUi::slider.phtml" selected="true">
+                        <label translate="true">Default Slider Template</label>
+                    </option>
+                </options>
+            </parameter>
+        </parameters>
+    </widget>
+</widgets>

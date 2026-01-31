@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<!--
+  ~ Copyright (c) 2025. Volodymyr Hryvinskyi. All rights reserved.
+  ~ @author: <mailto:volodymyr@hryvinskyi.com>
+  -->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Module/etc/module.xsd">
+    <module name="Hryvinskyi_BannerSliderFrontendUi">
+        <sequence>
+            <module name="Hryvinskyi_BannerSliderApi"/>
+            <module name="Hryvinskyi_BannerSlider"/>
+            <module name="Hryvinskyi_SplideJs"/>
+            <module name="Hryvinskyi_HeadTagManager"/>
+            <module name="Magento_Widget"/>
+        </sequence>
+    </module>
+</config>

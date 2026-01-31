@@ -1,0 +1,30 @@
+{
+    "name": "hryvinskyi/magento2-banner-slider-frontend-ui",
+    "description": "Banner Slider Frontend UI module - frontend display components",
+    "type": "magento2-module",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Volodymyr Hryvinskyi",
+            "email": "volodymyr@hryvinskyi.com"
+        }
+    ],
+    "require": {
+        "php": "^8.1",
+        "magento/framework": "*",
+        "magento/module-widget": "*",
+        "hryvinskyi/magento2-base": "^2.1.5",
+        "hryvinskyi/magento2-banner-slider-api": "*",
+        "hryvinskyi/magento2-banner-slider": "*",
+        "hryvinskyi/magento2-splide-js": "*",
+        "hryvinskyi/magento2-head-tag-manager": "*"
+    },
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "Hryvinskyi\\BannerSliderFrontendUi\\": ""
+        }
+    }
+}

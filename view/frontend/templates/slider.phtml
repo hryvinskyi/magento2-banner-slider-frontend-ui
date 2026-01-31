@@ -1,0 +1,92 @@
+<?php
+/**
+ * Copyright (c) 2026. Volodymyr Hryvinskyi. All rights reserved.
+ * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
+ * GitHub: https://github.com/hryvinskyi
+ */
+
+declare(strict_types=1);
+
+/**
+ * @var \Hryvinskyi\BannerSliderFrontendUi\Block\Widget\Slider $block
+ * @var \Magento\Framework\Escaper $escaper
+ * @var \Hryvinskyi\Base\Model\ViewModelRegistry $viewModels
+ * @var HeadTagManagerViewModel $headTagManagerViewModel
+ */
+
+use Hryvinskyi\HeadTagManager\ViewModel\HeadTagManagerViewModel;
+
+$slider = $block->getSlider();
+$banners = $block->getBanners();
+$renderer = $block->getBannerRenderer();
+
+if (!$slider || empty($banners)) {
+    return;
+}
+
+$headTagManagerViewModel = $viewModels->require(HeadTagManagerViewModel::class);
+$headTagManager = $headTagManagerViewModel->getManager();
+
+$headTagManager->addStylesheet($block->getViewFileUrl('Hryvinskyi_SplideJs::css/splide.min.css'));
+$headTagManager->addStylesheet($block->getViewFileUrl('Hryvinskyi_BannerSliderFrontendUi::css/styles.css'));
+
+// Add preload links for banners based on slider config or per-banner setting
+$preloadCount = $slider->getPreloadBannersCount();
+$bannerIndex = 0;
+foreach ($banners as $banner) {
+    // Preload if: banner has preload enabled OR banner is within first N banners of slider
+    $shouldPreload = $banner->isPreloadEnabled() || ($preloadCount > 0 && $bannerIndex < $preloadCount);
+    if ($shouldPreload && !$renderer->isVideoType($banner) && !$renderer->isCustomType($banner)) {
+        $preloadLinks = $renderer->getPreloadLinksForBanner($banner);
+        foreach ($preloadLinks as $linkAttributes) {
+            $headTagManager->addLink($linkAttributes);
+        }
+    }
+    $bannerIndex++;
+}
+
+$sliderId = 'banner-slider-' . $slider->getSliderId();
+$sliderConfig = $block->getSliderConfig();
+?>
+<div class="banner-slider-container" id="<?= $escaper->escapeHtmlAttr($sliderId) ?>">
+    <div class="banner-slider splide"
+         data-mage-init='{"splideWidget": <?= /* @noEscape */ $sliderConfig ?>}'>
+        <div class="splide__track">
+            <ul class="splide__list">
+                <?php foreach ($banners as $banner): ?>
+                    <li class="splide__slide banner-slider-item">
+                        <?php if ($renderer->isVideoType($banner)): ?>
+                            <?= /* @noEscape */ $renderer->getVideoHtml($banner) ?>
+                        <?php elseif ($renderer->isCustomType($banner)): ?>
+                            <div class="banner-slider-custom-content">
+                                <?= /* @noEscape */ $banner->getContent() ?>
+                            </div>
+                        <?php else: ?>
+                            <?php
+                            $lazyLoad = $slider->isLazyLoadEnabled();
+                            $imageHtml = $renderer->hasResponsiveCrops($banner)
+                                ? $renderer->getResponsiveImageHtml($banner, $lazyLoad)
+                                : $renderer->getImageHtml($banner, $lazyLoad);
+                            $bannerContent = $banner->getContent();
+                            ?>
+                            <div class="banner-slider-image-wrapper">
+                                <?php if ($renderer->hasLink($banner)): ?>
+                                    <a <?= /* @noEscape */ $renderer->getLinkAttributes($banner) ?> class="banner-slider-link">
+                                        <?= /* @noEscape */ $imageHtml ?>
+                                    </a>
+                                <?php else: ?>
+                                    <?= /* @noEscape */ $imageHtml ?>
+                                <?php endif; ?>
+                                <?php if (!empty($bannerContent)): ?>
+                                    <div class="banner-slider-content-overlay">
+                                        <?= /* @noEscape */ $bannerContent ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+    </div>
+</div>
