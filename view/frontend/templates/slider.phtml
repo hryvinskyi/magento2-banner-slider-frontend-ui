@@ -10,6 +10,7 @@ declare(strict_types=1);
 /**
  * @var \Hryvinskyi\BannerSliderFrontendUi\Block\Widget\Slider $block
  * @var \Magento\Framework\Escaper $escaper
+ * @var \Magento\Framework\View\Helper\SecureHtmlRenderer $secureRenderer
  * @var \Hryvinskyi\Base\Model\ViewModelRegistry $viewModels
  * @var HeadTagManagerViewModel $headTagManagerViewModel
  */
@@ -54,6 +55,15 @@ $containerAttributes = [
     'id' => $sliderId,
     'data-slider-id' => (string)$slider->getSliderId()
 ];
+$customCss = trim((string)$slider->getCustomCss());
+if (!empty($customCss)) {
+    echo $secureRenderer->renderTag(
+        'style',
+        [],
+        $customCss,
+        false
+    );
+}
 ?>
 <div<?= /* @noEscape */ $renderer->getContainerAttributesHtml($slider, $banners, $containerAttributes) ?>>
     <div class="banner-slider<?= $bannerCount > 1 ? ' splide' : '' ?>"
