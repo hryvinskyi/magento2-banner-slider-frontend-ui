@@ -11,10 +11,12 @@ namespace Hryvinskyi\BannerSliderFrontendUi\ViewModel;
 
 use Hryvinskyi\BannerSliderApi\Api\Data\BannerInterface;
 use Hryvinskyi\BannerSliderApi\Api\Data\ResponsiveCropInterface;
+use Hryvinskyi\BannerSliderApi\Api\Data\SliderInterface;
 use Hryvinskyi\BannerSliderApi\Api\ResponsiveCropRepositoryInterface;
 use Hryvinskyi\BannerSliderApi\Api\Video\ProviderInterface;
 use Hryvinskyi\BannerSliderApi\Api\Video\ProviderResolverInterface;
 use Hryvinskyi\BannerSliderApi\Api\Video\VideoDataInterface;
+use Hryvinskyi\BannerSliderFrontendUi\Api\Attribute\ElementAttributePoolInterface;
 use Hryvinskyi\Base\Helper\Html;
 use Magento\Cms\Model\Template\FilterProvider;
 use Magento\Framework\App\Filesystem\DirectoryList;
@@ -49,6 +51,7 @@ class BannerRenderer implements ArgumentInterface
      * @param LoggerInterface $logger
      * @param Filesystem $filesystem
      * @param FilterProvider $filterProvider
+     * @param ElementAttributePoolInterface $elementAttributePool
      */
     public function __construct(
         private readonly StoreManagerInterface $storeManager,
@@ -57,7 +60,8 @@ class BannerRenderer implements ArgumentInterface
         private readonly ResponsiveCropRepositoryInterface $responsiveCropRepository,
         private readonly LoggerInterface $logger,
         private readonly Filesystem $filesystem,
-        private readonly FilterProvider $filterProvider
+        private readonly FilterProvider $filterProvider,
+        private readonly ElementAttributePoolInterface $elementAttributePool
     ) {
     }
 
@@ -820,9 +824,10 @@ class BannerRenderer implements ArgumentInterface
      * Get link attributes for banner
      *
      * @param BannerInterface $banner
+     * @param SliderInterface|null $slider
      * @return string
      */
-    public function getLinkAttributes(BannerInterface $banner): string
+    public function getLinkAttributes(BannerInterface $banner, ?SliderInterface $slider = null): string
     {
         $attributes = [];
 
@@ -839,6 +844,11 @@ class BannerRenderer implements ArgumentInterface
             }
         }
 
+        if ($slider !== null) {
+            $poolAttributes = $this->elementAttributePool->getLinkAttributes($slider, $banner);
+            $attributes = $this->mergeAttributeArrays($attributes, $poolAttributes);
+        }
+
         return $this->buildAttributeString($attributes);
     }
 
@@ -851,5 +861,70 @@ class BannerRenderer implements ArgumentInterface
     public function hasLink(BannerInterface $banner): bool
     {
         return !empty($banner->getLinkUrl());
+    }
+
+    /**
+     * Get container attributes HTML string with merged pool attributes
+     *
+     * @param SliderInterface $slider
+     * @param array<BannerInterface> $banners
+     * @param array<string, string|bool|int> $baseAttributes
+     * @return string
+     */
+    public function getContainerAttributesHtml(
+        SliderInterface $slider,
+        array $banners,
+        array $baseAttributes = []
+    ): string {
+        $poolAttributes = $this->elementAttributePool->getContainerAttributes($slider, $banners);
+        $mergedAttributes = $this->mergeAttributeArrays($baseAttributes, $poolAttributes);
+
+        return Html::renderTagAttributes($mergedAttributes);
+    }
+
+    /**
+     * Get slide attributes HTML string with merged pool attributes
+     *
+     * @param SliderInterface $slider
+     * @param BannerInterface $banner
+     * @param array<string, string|bool|int> $baseAttributes
+     * @return string
+     */
+    public function getSlideAttributesHtml(
+        SliderInterface $slider,
+        BannerInterface $banner,
+        array $baseAttributes = []
+    ): string {
+        $poolAttributes = $this->elementAttributePool->getSlideAttributes($slider, $banner);
+        $mergedAttributes = $this->mergeAttributeArrays($baseAttributes, $poolAttributes);
+
+        return Html::renderTagAttributes($mergedAttributes);
+    }
+
+    /**
+     * Merge two attribute arrays with special handling for class attribute
+     *
+     * @param array<string, string|bool|int> $base
+     * @param array<string, string|bool|int> $additional
+     * @return array<string, string|bool|int>
+     */
+    private function mergeAttributeArrays(array $base, array $additional): array
+    {
+        foreach ($additional as $name => $value) {
+            if ($name === 'class' && isset($base['class'])) {
+                $baseClasses = is_string($base['class'])
+                    ? explode(' ', $base['class'])
+                    : [$base['class']];
+                $additionalClasses = is_string($value)
+                    ? explode(' ', $value)
+                    : [$value];
+                $merged = array_unique(array_merge($baseClasses, $additionalClasses));
+                $base['class'] = implode(' ', array_filter($merged));
+            } else {
+                $base[$name] = $value;
+            }
+        }
+
+        return $base;
     }
 }

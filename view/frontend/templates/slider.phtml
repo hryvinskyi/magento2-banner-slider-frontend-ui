@@ -48,14 +48,26 @@ foreach ($banners as $banner) {
 $sliderId = 'banner-slider-' . $slider->getSliderId();
 $bannerCount = count($banners);
 $sliderConfig = $bannerCount > 1 ? $block->getSliderConfig() : null;
+
+$containerAttributes = [
+    'class' => 'banner-slider-container',
+    'id' => $sliderId,
+    'data-slider-id' => (string)$slider->getSliderId()
+];
 ?>
-<div class="banner-slider-container" id="<?= $escaper->escapeHtmlAttr($sliderId) ?>">
+<div<?= /* @noEscape */ $renderer->getContainerAttributesHtml($slider, $banners, $containerAttributes) ?>>
     <div class="banner-slider<?= $bannerCount > 1 ? ' splide' : '' ?>"
          <?php if ($sliderConfig !== null): ?>data-mage-init='{"splideWidget": <?= /* @noEscape */ $sliderConfig ?>}'<?php endif; ?>>
         <div class="splide__track">
             <ul class="splide__list">
                 <?php foreach ($banners as $banner): ?>
-                    <li class="splide__slide banner-slider-item">
+                    <?php
+                    $slideAttributes = [
+                        'class' => 'splide__slide banner-slider-item',
+                        'data-banner-id' => (string)$banner->getBannerId()
+                    ];
+                    ?>
+                    <li<?= /* @noEscape */ $renderer->getSlideAttributesHtml($slider, $banner, $slideAttributes) ?>>
                         <?php if ($renderer->isVideoType($banner)): ?>
                             <?= /* @noEscape */ $renderer->getVideoHtml($banner) ?>
                         <?php elseif ($renderer->isCustomType($banner)): ?>
@@ -66,13 +78,15 @@ $sliderConfig = $bannerCount > 1 ? $block->getSliderConfig() : null;
                             <?php
                             $lazyLoad = $slider->isLazyLoadEnabled();
                             $imageHtml = $renderer->hasResponsiveCrops($banner)
-                                ? $renderer->getResponsiveImageHtml($banner, $lazyLoad)
-                                : $renderer->getImageHtml($banner, $lazyLoad);
+                                    ? $renderer->getResponsiveImageHtml($banner, $lazyLoad)
+                                    : $renderer->getImageHtml($banner, $lazyLoad);
                             $bannerContent = $banner->getContent();
                             ?>
                             <div class="banner-slider-image-wrapper">
                                 <?php if ($renderer->hasLink($banner)): ?>
-                                    <a <?= /* @noEscape */ $renderer->getLinkAttributes($banner) ?> class="banner-slider-link">
+                                    <a <?= /* @noEscape */ $renderer->getLinkAttributes($banner, $slider) ?>
+                                            class="banner-slider-link"
+                                            data-banner-id="<?= $escaper->escapeHtmlAttr((string)$banner->getBannerId()) ?>">
                                         <?= /* @noEscape */ $imageHtml ?>
                                     </a>
                                 <?php else: ?>

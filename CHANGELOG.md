@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.5] - 2026-02-02
+
+### Added
+- Extensible element attribute system for slider, slide, and link elements
+- `ElementAttributePoolInterface` - Collects and merges attributes from registered providers
+- `ElementAttributeProviderInterface` - Interface for modules to provide custom HTML attributes
+- `ElementAttributePool` model implementation with sort order support
+- `getContainerAttributesHtml()` method in BannerRenderer for slider container attributes
+- `getSlideAttributesHtml()` method in BannerRenderer for individual slide attributes
+- `data-slider-id` attribute on slider container element
+- `data-banner-id` attribute on slide and link elements
+
+### Changed
+- `getLinkAttributes()` now accepts optional `SliderInterface` parameter for pool integration
+- Slider template updated to use new attribute methods with extensibility support
+- DI configuration updated with ElementAttributePool preference and empty providers array
+
+### Technical Notes
+- Attribute providers can be registered via DI by adding to the `providers` array
+- Class attributes from multiple providers are automatically merged (not overwritten)
+- Providers are sorted by `getSortOrder()` for predictable execution order
+- Enables analytics modules to inject tracking attributes without template modification
+
 ## [1.0.4] - 2026-01-31
 
 ### Added
