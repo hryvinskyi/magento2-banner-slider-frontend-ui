@@ -60,6 +60,8 @@ class Slider extends Template implements BlockInterface, IdentityInterface
     /**
      * Get slider instance with store and customer group validation
      *
+     * Retrieves slider by ID if provided, otherwise falls back to location-based lookup.
+     *
      * @return SliderInterface|null
      * @throws NoSuchEntityException
      */
@@ -67,8 +69,9 @@ class Slider extends Template implements BlockInterface, IdentityInterface
     {
         if ($this->slider === null) {
             $sliderId = (int)$this->getData('slider_id');
+            $location = (string)$this->getData('location');
 
-            if (!$sliderId) {
+            if (!$sliderId && $location === '') {
                 $this->slider = false;
                 return null;
             }
@@ -76,7 +79,11 @@ class Slider extends Template implements BlockInterface, IdentityInterface
             $storeId = (int)$this->_storeManager->getStore()->getId();
             $customerGroupId = (int)$this->httpContext->getValue(CustomerContext::CONTEXT_GROUP);
 
-            $this->slider = $this->sliderLocator->getById($sliderId, $storeId, $customerGroupId) ?? false;
+            if ($sliderId) {
+                $this->slider = $this->sliderLocator->getById($sliderId, $storeId, $customerGroupId) ?? false;
+            } else {
+                $this->slider = $this->sliderLocator->getByLocation($location, $storeId, $customerGroupId) ?? false;
+            }
         }
 
         return $this->slider ?: null;
@@ -254,6 +261,7 @@ class Slider extends Template implements BlockInterface, IdentityInterface
             $this->_design->getDesignTheme()->getId(),
             $this->httpContext->getValue(CustomerContext::CONTEXT_GROUP),
             $this->getData('slider_id'),
+            $this->getData('location'),
             md5($this->getTemplate() . $this->getNameInLayout())
         ];
     }
