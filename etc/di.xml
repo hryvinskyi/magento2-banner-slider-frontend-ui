@@ -20,6 +20,25 @@
         </arguments>
     </type>
 
+    <!-- Responsive image: crop order, <picture> rendering and preload links -->
+    <preference for="Hryvinskyi\BannerSliderFrontendUi\Api\ResponsiveImage\CropOrderInterface"
+                type="Hryvinskyi\BannerSliderFrontendUi\Model\ResponsiveImage\CropOrder"/>
+    <preference for="Hryvinskyi\BannerSliderFrontendUi\Api\ResponsiveImage\PictureRendererInterface"
+                type="Hryvinskyi\BannerSliderFrontendUi\Model\ResponsiveImage\PictureRenderer"/>
+    <preference for="Hryvinskyi\BannerSliderFrontendUi\Api\ResponsiveImage\PreloadLinkBuilderInterface"
+                type="Hryvinskyi\BannerSliderFrontendUi\Model\ResponsiveImage\PreloadLinkBuilder"/>
+
+    <type name="Hryvinskyi\BannerSliderFrontendUi\Model\ResponsiveImage\PictureRenderer">
+        <arguments>
+            <argument name="storeManager" xsi:type="object">Magento\Store\Model\StoreManagerInterface\Proxy</argument>
+        </arguments>
+    </type>
+    <type name="Hryvinskyi\BannerSliderFrontendUi\Model\ResponsiveImage\PreloadLinkBuilder">
+        <arguments>
+            <argument name="storeManager" xsi:type="object">Magento\Store\Model\StoreManagerInterface\Proxy</argument>
+        </arguments>
+    </type>
+
     <!-- Banner Renderer ViewModel -->
     <type name="Hryvinskyi\BannerSliderFrontendUi\ViewModel\BannerRenderer">
         <arguments>

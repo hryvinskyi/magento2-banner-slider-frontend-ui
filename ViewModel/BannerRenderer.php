@@ -17,6 +17,8 @@ use Hryvinskyi\BannerSliderApi\Api\Video\ProviderInterface;
 use Hryvinskyi\BannerSliderApi\Api\Video\ProviderResolverInterface;
 use Hryvinskyi\BannerSliderApi\Api\Video\VideoDataInterface;
 use Hryvinskyi\BannerSliderFrontendUi\Api\Attribute\ElementAttributePoolInterface;
+use Hryvinskyi\BannerSliderFrontendUi\Api\ResponsiveImage\PictureRendererInterface;
+use Hryvinskyi\BannerSliderFrontendUi\Api\ResponsiveImage\PreloadLinkBuilderInterface;
 use Hryvinskyi\Base\Helper\Html;
 use Magento\Cms\Model\Template\FilterProvider;
 use Magento\Framework\App\Filesystem\DirectoryList;
@@ -52,6 +54,8 @@ class BannerRenderer implements ArgumentInterface
      * @param Filesystem $filesystem
      * @param FilterProvider $filterProvider
      * @param ElementAttributePoolInterface $elementAttributePool
+     * @param PictureRendererInterface $pictureRenderer
+     * @param PreloadLinkBuilderInterface $preloadLinkBuilder
      */
     public function __construct(
         private readonly StoreManagerInterface $storeManager,
@@ -61,7 +65,9 @@ class BannerRenderer implements ArgumentInterface
         private readonly LoggerInterface $logger,
         private readonly Filesystem $filesystem,
         private readonly FilterProvider $filterProvider,
-        private readonly ElementAttributePoolInterface $elementAttributePool
+        private readonly ElementAttributePoolInterface $elementAttributePool,
+        private readonly PictureRendererInterface $pictureRenderer,
+        private readonly PreloadLinkBuilderInterface $preloadLinkBuilder
     ) {
     }
 
@@ -377,7 +383,7 @@ class BannerRenderer implements ArgumentInterface
     /**
      * Build HTML attribute string
      *
-     * @param array $attributes
+     * @param array<string, string|int|bool> $attributes
      * @return string
      */
     private function buildAttributeString(array $attributes): string
@@ -391,7 +397,7 @@ class BannerRenderer implements ArgumentInterface
                 $parts[] = sprintf(
                     '%s="%s"',
                     $this->escaper->escapeHtmlAttr($key),
-                    $this->escaper->escapeHtmlAttr($value)
+                    $this->escaper->escapeHtmlAttr((string)$value)
                 );
             }
         }
@@ -424,7 +430,7 @@ class BannerRenderer implements ArgumentInterface
             $options['loading'] = 'lazy';
         }
 
-        $imagePath = '/' . ltrim($banner->getImage(), '/');
+        $imagePath = '/' . ltrim((string)$banner->getImage(), '/');
         $dimensions = $this->getImageDimensions($imagePath);
 
         if ($dimensions) {
@@ -517,8 +523,7 @@ class BannerRenderer implements ArgumentInterface
     /**
      * Get responsive image HTML with picture element for banner
      *
-     * Generates a <picture> element with sources ordered:
-     * AVIF → WebP → Original per breakpoint (sorted by min_width descending for desktop-first)
+     * Falls back to the banner's own image when it has no responsive crop with an image.
      *
      * @param BannerInterface $banner
      * @param bool $lazyLoad
@@ -528,118 +533,10 @@ class BannerRenderer implements ArgumentInterface
     public function getResponsiveImageHtml(BannerInterface $banner, bool $lazyLoad = false): string
     {
         $crops = $this->getResponsiveCrops($banner);
-
-        if (empty($crops)) {
-            return $this->getImageHtml($banner, $lazyLoad);
-        }
-
-        $mediaUrl = $this->storeManager->getStore()->getBaseUrl(UrlInterface::URL_TYPE_MEDIA);
         $alt = $banner->getTitle() ?: $banner->getName() ?: '';
+        $pictureHtml = $crops !== [] ? $this->pictureRenderer->render($crops, $alt, $lazyLoad) : '';
 
-        // Sort crops by sort_order (which corresponds to breakpoint sort_order - desktop first)
-        usort($crops, function (ResponsiveCropInterface $a, ResponsiveCropInterface $b) {
-            return ($a->getSortOrder() ?? 0) <=> ($b->getSortOrder() ?? 0);
-        });
-
-        $sources = [];
-        $fallbackUrl = null;
-        $fallbackWidth = null;
-        $fallbackHeight = null;
-
-        foreach ($crops as $crop) {
-            if (!$crop->getCroppedImage()) {
-                continue;
-            }
-
-            $mediaQuery = $this->getMediaQueryFromCrop($crop);
-            $croppedUrl = $mediaUrl . $crop->getCroppedImage();
-            $cropData = $crop->getData();
-
-            // Track fallback dimensions (first crop = largest/desktop breakpoint for proper CLS)
-            if ($fallbackUrl === null) {
-                $fallbackUrl = $croppedUrl;
-                $fallbackWidth = $cropData['target_width'] ?? null;
-                $fallbackHeight = $cropData['target_height'] ?? null;
-            }
-
-            // Add AVIF source if available
-            if ($crop->isGenerateAvifEnabled() && $crop->getAvifImage()) {
-                $avifUrl = $mediaUrl . $crop->getAvifImage();
-                $sources[] = $this->buildSourceElement($avifUrl, $mediaQuery, 'image/avif');
-            }
-
-            // Add WebP source if available
-            if ($crop->isGenerateWebpEnabled() && $crop->getWebpImage()) {
-                $webpUrl = $mediaUrl . $crop->getWebpImage();
-                $sources[] = $this->buildSourceElement($webpUrl, $mediaQuery, 'image/webp');
-            }
-
-            // Add original format source
-            $sources[] = $this->buildSourceElement($croppedUrl, $mediaQuery);
-        }
-
-        if (empty($sources)) {
-            return $this->getImageHtml($banner, $lazyLoad);
-        }
-
-        // Use legacy image as ultimate fallback if no responsive fallback
-        if (!$fallbackUrl) {
-            $fallbackUrl = $this->getImageUrl($banner) ?: '';
-        }
-
-        $imgOptions = [
-            'alt' => $alt,
-            'class' => 'banner-slider-image',
-        ];
-
-        if ($fallbackWidth && $fallbackHeight) {
-            $imgOptions['width'] = (int)$fallbackWidth;
-            $imgOptions['height'] = (int)$fallbackHeight;
-        }
-
-        if ($lazyLoad) {
-            $imgOptions['loading'] = 'lazy';
-        }
-
-        $imgHtml = '    ' . Html::img($fallbackUrl, $imgOptions);
-        $content = "\n" . implode("\n", $sources) . "\n" . $imgHtml . "\n";
-
-        return Html::tag('picture', $content);
-    }
-
-    /**
-     * Build a source element for the picture tag
-     *
-     * @param string $srcset
-     * @param string $mediaQuery
-     * @param string|null $type
-     * @return string
-     */
-    private function buildSourceElement(string $srcset, string $mediaQuery, ?string $type = null): string
-    {
-        $options = [
-            'media' => $mediaQuery,
-            'srcset' => $srcset,
-        ];
-
-        if ($type !== null) {
-            $options['type'] = $type;
-        }
-
-        return '    ' . Html::tag('source', '', $options);
-    }
-
-    /**
-     * Get media query from crop (loaded via breakpoint join)
-     *
-     * @param ResponsiveCropInterface $crop
-     * @return string
-     */
-    private function getMediaQueryFromCrop(ResponsiveCropInterface $crop): string
-    {
-        // The media_query should be loaded via joined breakpoint data
-        $data = $crop->getData();
-        return $data['media_query'] ?? '(min-width: 0px)';
+        return $pictureHtml !== '' ? $pictureHtml : $this->getImageHtml($banner, $lazyLoad);
     }
 
     /**
@@ -671,7 +568,7 @@ class BannerRenderer implements ArgumentInterface
         $crops = $this->getResponsiveCrops($banner);
 
         if (!empty($crops)) {
-            $links = $this->buildResponsivePreloadLinks($crops);
+            $links = $this->preloadLinkBuilder->build($crops);
         } else {
             $imageUrl = $this->getImageUrl($banner);
             if ($imageUrl) {
@@ -684,97 +581,6 @@ class BannerRenderer implements ArgumentInterface
         }
 
         return $links;
-    }
-
-    /**
-     * Build preload link for responsive images with srcset
-     *
-     * Only preloads the most preferred format (AVIF > WebP > original) to avoid
-     * multiple downloads. The type attribute acts as progressive enhancement -
-     * browsers that don't support the type won't download it.
-     *
-     * @param array<ResponsiveCropInterface> $crops
-     * @return array<array{rel: string, href: string, as: string, type?: string, imagesrcset?: string, imagesizes?: string}>
-     * @throws NoSuchEntityException
-     */
-    private function buildResponsivePreloadLinks(array $crops): array
-    {
-        $mediaUrl = $this->storeManager->getStore()->getBaseUrl(UrlInterface::URL_TYPE_MEDIA);
-
-        // Sort by sort_order (desktop first)
-        usort($crops, function (ResponsiveCropInterface $a, ResponsiveCropInterface $b) {
-            return ($a->getSortOrder() ?? 0) <=> ($b->getSortOrder() ?? 0);
-        });
-
-        $avifSrcset = [];
-        $webpSrcset = [];
-        $originalSrcset = [];
-        $sizes = [];
-
-        foreach ($crops as $crop) {
-            if (!$crop->getCroppedImage()) {
-                continue;
-            }
-
-            $cropData = $crop->getData();
-            $mediaQuery = $cropData['media_query'] ?? '';
-            $targetWidth = $cropData['target_width'] ?? 0;
-
-            if ($mediaQuery && $targetWidth) {
-                $sizes[] = $mediaQuery . ' ' . $targetWidth . 'px';
-            }
-
-            $croppedUrl = $mediaUrl . $crop->getCroppedImage();
-            $originalSrcset[] = $croppedUrl . ' ' . $targetWidth . 'w';
-
-            if ($crop->isGenerateAvifEnabled() && $crop->getAvifImage()) {
-                $avifSrcset[] = $mediaUrl . $crop->getAvifImage() . ' ' . $targetWidth . 'w';
-            }
-
-            if ($crop->isGenerateWebpEnabled() && $crop->getWebpImage()) {
-                $webpSrcset[] = $mediaUrl . $crop->getWebpImage() . ' ' . $targetWidth . 'w';
-            }
-        }
-
-        $sizesString = !empty($sizes) ? implode(', ', $sizes) . ', 100vw' : '100vw';
-
-        // Only preload the most preferred format to avoid multiple downloads
-        // AVIF is preferred (with type for progressive enhancement)
-        if (!empty($avifSrcset)) {
-            return [[
-                'rel' => 'preload',
-                'as' => 'image',
-                'href' => explode(' ', $avifSrcset[0])[0],
-                'type' => 'image/avif',
-                'imagesrcset' => implode(', ', $avifSrcset),
-                'imagesizes' => $sizesString
-            ]];
-        }
-
-        // WebP fallback (with type for progressive enhancement)
-        if (!empty($webpSrcset)) {
-            return [[
-                'rel' => 'preload',
-                'as' => 'image',
-                'href' => explode(' ', $webpSrcset[0])[0],
-                'type' => 'image/webp',
-                'imagesrcset' => implode(', ', $webpSrcset),
-                'imagesizes' => $sizesString
-            ]];
-        }
-
-        // Original format as last resort (no type, all browsers will download)
-        if (!empty($originalSrcset)) {
-            return [[
-                'rel' => 'preload',
-                'as' => 'image',
-                'href' => explode(' ', $originalSrcset[0])[0],
-                'imagesrcset' => implode(', ', $originalSrcset),
-                'imagesizes' => $sizesString
-            ]];
-        }
-
-        return [];
     }
 
     /**

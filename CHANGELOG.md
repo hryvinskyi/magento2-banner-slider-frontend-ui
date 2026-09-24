@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.8] - 2026-09-24
+
+### Fixed
+- Responsive banners reserving the mobile crop's height on desktop. When a banner's crops shared a sort order, the
+  database row order decided which crop came first, and the fallback `<img>` took that crop's size. With the mobile
+  crop first, a slide that had not loaded yet held the mobile aspect ratio at desktop width and the slider grew to
+  that height (a 1920×294 banner took 1520px at 2307px wide).
+  - Every `<source>` now carries the `width` and `height` of its own crop
+  - Crops are ordered by breakpoint, widest first, then by their sort order and id, so the fallback `<img>` is the
+    widest crop whatever order the rows come in
+  - Preload links use the same order
+
+### Changed
+- `<picture>` rendering and preload links moved out of `BannerRenderer` into `PictureRendererInterface` and
+  `PreloadLinkBuilderInterface`; crop ordering is `CropOrderInterface`. `BannerRenderer` keeps its public methods and
+  delegates to them
+- `BannerRenderer` constructor takes the two new services
+
+### Added
+- Unit tests for crop ordering, breakpoint reading, `<picture>` rendering and preload links
+
 ## [1.0.7] - 2026-02-03
 
 ### Added
