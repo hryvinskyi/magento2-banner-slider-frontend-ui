@@ -14,11 +14,11 @@ use Hryvinskyi\BannerSliderApi\Api\Data\BannerInterface;
 use Hryvinskyi\BannerSliderApi\Api\Data\SliderInterface;
 use Hryvinskyi\BannerSliderApi\Api\Slider\SliderLocatorInterface;
 use Hryvinskyi\BannerSliderApi\Api\Value\LocationCode;
+use Hryvinskyi\BannerSliderFrontendUi\Api\Head\HeadAssetRegistrarInterface;
 use Hryvinskyi\BannerSliderFrontendUi\Api\Render\TemplateRendererInterface;
-use Hryvinskyi\BannerSliderFrontendUi\Model\Head\HeadAssetRegistrar;
-use Hryvinskyi\BannerSliderFrontendUi\Model\StorefrontContextProvider;
-use Hryvinskyi\BannerSliderFrontendUi\Model\View\SliderView;
-use Hryvinskyi\BannerSliderFrontendUi\Model\View\SliderViewBuilder;
+use Hryvinskyi\BannerSliderFrontendUi\Api\StorefrontContextProviderInterface;
+use Hryvinskyi\BannerSliderFrontendUi\Api\View\SliderView;
+use Hryvinskyi\BannerSliderFrontendUi\Api\View\SliderViewBuilderInterface;
 use Magento\Framework\DataObject\IdentityInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\View\Element\Template;
@@ -97,9 +97,9 @@ class Slider extends Template implements BlockInterface, IdentityInterface
      * @param Template\Context $context
      * @param SliderLocatorInterface $sliderLocator
      * @param VisibleBannersProviderInterface $visibleBannersProvider
-     * @param StorefrontContextProvider $storefrontContextProvider
-     * @param SliderViewBuilder $sliderViewBuilder
-     * @param HeadAssetRegistrar $headAssetRegistrar
+     * @param StorefrontContextProviderInterface $storefrontContextProvider
+     * @param SliderViewBuilderInterface $sliderViewBuilder
+     * @param HeadAssetRegistrarInterface $headAssetRegistrar
      * @param TemplateRendererInterface $templateRenderer
      * @param LoggerInterface $logger
      * @param array<string,mixed> $data Block data; `template` defaults to the slider template
@@ -108,9 +108,9 @@ class Slider extends Template implements BlockInterface, IdentityInterface
         Template\Context $context,
         private readonly SliderLocatorInterface $sliderLocator,
         private readonly VisibleBannersProviderInterface $visibleBannersProvider,
-        private readonly StorefrontContextProvider $storefrontContextProvider,
-        private readonly SliderViewBuilder $sliderViewBuilder,
-        private readonly HeadAssetRegistrar $headAssetRegistrar,
+        private readonly StorefrontContextProviderInterface $storefrontContextProvider,
+        private readonly SliderViewBuilderInterface $sliderViewBuilder,
+        private readonly HeadAssetRegistrarInterface $headAssetRegistrar,
         private readonly TemplateRendererInterface $templateRenderer,
         private readonly LoggerInterface $logger,
         array $data = []

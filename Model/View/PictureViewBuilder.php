@@ -11,9 +11,10 @@ namespace Hryvinskyi\BannerSliderFrontendUi\Model\View;
 
 use Hryvinskyi\BannerSliderApi\Api\Media\MediaUrlResolverInterface;
 use Hryvinskyi\BannerSliderApi\Api\Value\Dimensions;
-use Hryvinskyi\BannerSliderApi\Api\Value\PictureSource;
 use Hryvinskyi\BannerSliderFrontendUi\Api\Value\HtmlAttributes;
 use Hryvinskyi\BannerSliderFrontendUi\Api\Value\SlideLoading;
+use Hryvinskyi\BannerSliderFrontendUi\Api\View\PictureView;
+use Hryvinskyi\BannerSliderFrontendUi\Api\View\PictureViewBuilderInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
 
 /**
@@ -30,7 +31,7 @@ use Magento\Framework\Exception\NoSuchEntityException;
  *
  * A plain image is an `<img>` with the banner's stored size, when known; nothing is read from disk while rendering.
  */
-class PictureViewBuilder
+class PictureViewBuilder implements PictureViewBuilderInterface
 {
     private const MEDIA_CLASS = 'hbs-slide__media';
 
@@ -43,16 +44,7 @@ class PictureViewBuilder
     }
 
     /**
-     * The view of a responsive picture
-     *
-     * @param non-empty-list<PictureSource> $sources Widest first
-     * @param string|null $bannerImage Media-relative path of the banner image, shown where no source matches
-     * @param Dimensions|null $bannerImageDimensions Stored size of the banner image, when known
-     * @param string $alt Alternative text; empty for a decorative image
-     * @param SlideLoading $loading
-     * @return PictureView
-     * @throws \InvalidArgumentException When a stored path is not a safe media path
-     * @throws NoSuchEntityException When the current store cannot be resolved
+     * @inheritDoc
      */
     public function fromSources(
         array $sources,
@@ -92,15 +84,7 @@ class PictureViewBuilder
     }
 
     /**
-     * The view of a plain image
-     *
-     * @param string $relativePath Media-relative path
-     * @param Dimensions|null $dimensions Stored size, when known
-     * @param string $alt Alternative text; empty for a decorative image
-     * @param SlideLoading $loading
-     * @return PictureView
-     * @throws \InvalidArgumentException When the path is not a safe media path
-     * @throws NoSuchEntityException When the current store cannot be resolved
+     * @inheritDoc
      */
     public function fromImage(
         string $relativePath,
@@ -112,15 +96,7 @@ class PictureViewBuilder
     }
 
     /**
-     * Attributes of an `<img>` without a class, for images such as a video poster
-     *
-     * @param string $relativePath Media-relative path
-     * @param Dimensions|null $dimensions Stored size, when known
-     * @param string $alt Alternative text; empty for a decorative image
-     * @param SlideLoading $loading
-     * @return HtmlAttributes
-     * @throws \InvalidArgumentException When the path is not a safe media path
-     * @throws NoSuchEntityException When the current store cannot be resolved
+     * @inheritDoc
      */
     public function image(
         string $relativePath,

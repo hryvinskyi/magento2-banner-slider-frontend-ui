@@ -231,7 +231,8 @@
     /**
      * The options handed to Splide: the server-built options, with autoplay paused for reduced motion
      *
-     * Autoplay stays configured, so the visitor can still start it with the pause button.
+     * Autoplay stays configured, so the visitor can still start it with the pause/play button when the slider has
+     * one.
      *
      * @param {Object} splideConfig
      * @param {boolean} reducedMotion
@@ -575,6 +576,10 @@
      * Click-to-load buttons and background video buttons work even when Splide is missing; the slider then
      * keeps showing its first slide.
      *
+     * The autoplay pause/play button is wired only when the server rendered one (`[data-hbs-toggle]`); the script
+     * never creates it. Without it autoplay runs as configured, reduced motion still starts it paused, and starting
+     * a click-to-load video still stops it.
+     *
      * @param {Element} element The slider container, with `data-hbs-slider`
      * @param {Function} Splide The Splide constructor
      * @return {Object|null} The Splide instance, or null when the slider did not start
@@ -583,11 +588,12 @@
         var config,
             reducedMotion,
             backgrounds,
-            controls = {toggle: null},
+            controls = {stopAutoplay: null},
             root,
             splide,
             button,
-            autoplay;
+            autoplay,
+            toggle;
 
         if (!element || element.hasAttribute(MOUNTED_ATTRIBUTE)) {
             return null;
@@ -604,8 +610,8 @@
         reducedMotion = prefersReducedMotion(element.ownerDocument && element.ownerDocument.defaultView);
         backgrounds = setupBackgroundVideos(element, config, reducedMotion);
         setupFacades(element, function () {
-            if (controls.toggle) {
-                controls.toggle.set(true);
+            if (controls.stopAutoplay) {
+                controls.stopAutoplay();
             }
         });
 
@@ -626,10 +632,17 @@
         splide.mount();
         pauseHiddenSlides(element);
 
-        button = ownElement(element, '[data-hbs-toggle]');
         autoplay = splide.Components && splide.Components.Autoplay;
-        if (button && autoplay && config.splide.autoplay) {
-            controls.toggle = createToggle(
+        if (!autoplay || !config.splide.autoplay) {
+            return splide;
+        }
+
+        controls.stopAutoplay = function () {
+            autoplay.pause();
+        };
+        button = ownElement(element, '[data-hbs-toggle]');
+        if (button) {
+            toggle = createToggle(
                 button,
                 {pause: config.pauseLabel, play: config.playLabel},
                 reducedMotion,
@@ -637,6 +650,9 @@
                     autoplay[paused ? 'pause' : 'play']();
                 }
             );
+            controls.stopAutoplay = function () {
+                toggle.set(true);
+            };
         }
 
         return splide;

@@ -17,6 +17,9 @@ use Hryvinskyi\BannerSliderFrontendUi\Api\Attribute\ElementAttributePoolInterfac
 use Hryvinskyi\BannerSliderFrontendUi\Api\Render\SlideRendererInterface;
 use Hryvinskyi\BannerSliderFrontendUi\Api\Value\HtmlAttributes;
 use Hryvinskyi\BannerSliderFrontendUi\Api\Value\SlideContext;
+use Hryvinskyi\BannerSliderFrontendUi\Api\View\SliderView;
+use Hryvinskyi\BannerSliderFrontendUi\Api\View\SliderViewBuilderInterface;
+use Hryvinskyi\BannerSliderFrontendUi\Api\View\SlideView;
 use Magento\Framework\Exception\LocalizedException;
 use Psr\Log\LoggerInterface;
 
@@ -35,8 +38,11 @@ use Psr\Log\LoggerInterface;
  * - `data-hbs-assets`: the script URLs a page without a module loader injects;
  * - `data-mage-init` for pages with a module loader;
  * - `role="region"`, `aria-roledescription` and `aria-label` (the slider name).
+ *
+ * The view has a pause control only when the slides advance on their own (auto play on and more than one slide)
+ * and the slider shows its pause/play button.
  */
-class SliderViewBuilder
+class SliderViewBuilder implements SliderViewBuilderInterface
 {
     private const MODULE_LOADER_COMPONENT = 'Hryvinskyi_BannerSliderFrontendUi/js/banner-slider-requirejs';
 
@@ -65,14 +71,7 @@ class SliderViewBuilder
     }
 
     /**
-     * The view of a slider with its banners, or null when none of the banners renders
-     *
-     * @param SliderInterface $slider
-     * @param list<BannerInterface> $banners Visible banners, in display order
-     * @return SliderView|null
-     * @throws \InvalidArgumentException When an attribute provider returns a name that is not allowed
-     * @throws LocalizedException When an asset URL cannot be resolved
-     * @throws \JsonException When the configuration cannot be encoded
+     * @inheritDoc
      */
     public function build(SliderInterface $slider, array $banners): ?SliderView
     {
@@ -94,7 +93,7 @@ class SliderViewBuilder
         $sliderId = (int)$slider->getSliderId();
         $domId = $this->domIdAllocator->allocate($sliderId);
         $config = $this->config($slider, $slides);
-        $autoplay = ($config['splide']['autoplay'] ?? false) === true;
+        $pauseControl = ($config['splide']['autoplay'] ?? false) === true && $slider->isAutoPlayToggleEnabled();
         $renderedBanners = array_map(fn (SlideView $slide): BannerInterface => $slide->getBanner(), $slides);
 
         $base = new HtmlAttributes([
@@ -114,7 +113,7 @@ class SliderViewBuilder
             $domId,
             $this->attributePool->getContainerAttributes($slider, $renderedBanners, $base),
             $slides,
-            $autoplay,
+            $pauseControl,
             (string)__('Pause autoplay'),
             $pictures
         );

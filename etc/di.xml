@@ -43,7 +43,18 @@
     <preference for="Hryvinskyi\BannerSliderFrontendUi\Api\Render\ContentFilterInterface"
                 type="Hryvinskyi\BannerSliderFrontendUi\Model\Render\ContentFilter"/>
 
-    <!-- "Now" in UTC, the time zone of the stored active windows -->
+    <!-- Slider view, its images and its head elements -->
+    <preference for="Hryvinskyi\BannerSliderFrontendUi\Api\View\SliderViewBuilderInterface"
+                type="Hryvinskyi\BannerSliderFrontendUi\Model\View\SliderViewBuilder"/>
+    <preference for="Hryvinskyi\BannerSliderFrontendUi\Api\View\PictureViewBuilderInterface"
+                type="Hryvinskyi\BannerSliderFrontendUi\Model\View\PictureViewBuilder"/>
+    <preference for="Hryvinskyi\BannerSliderFrontendUi\Api\Head\HeadAssetRegistrarInterface"
+                type="Hryvinskyi\BannerSliderFrontendUi\Model\Head\HeadAssetRegistrar"/>
+
+    <!-- Storefront context: store view and customer group of the request, and "now" in UTC, the time zone of the
+         stored active windows -->
+    <preference for="Hryvinskyi\BannerSliderFrontendUi\Api\StorefrontContextProviderInterface"
+                type="Hryvinskyi\BannerSliderFrontendUi\Model\StorefrontContextProvider"/>
     <type name="Hryvinskyi\BannerSliderFrontendUi\Model\StorefrontContextProvider">
         <arguments>
             <argument name="clock" xsi:type="object">Hryvinskyi\BannerSlider\Model\Clock\SystemClock</argument>

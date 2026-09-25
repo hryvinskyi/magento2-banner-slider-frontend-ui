@@ -7,12 +7,16 @@
 
 declare(strict_types=1);
 
-namespace Hryvinskyi\BannerSliderFrontendUi\Model\View;
+namespace Hryvinskyi\BannerSliderFrontendUi\Api\View;
 
 use Hryvinskyi\BannerSliderFrontendUi\Api\Value\HtmlAttributes;
 
 /**
  * A slide's image: the `<source>` elements of a responsive picture (none for a plain image) and the `<img>`.
+ *
+ * An immutable read model, the `$view` of `slide/picture.phtml`; built by `PictureViewBuilderInterface`.
+ *
+ * @api
  */
 class PictureView
 {

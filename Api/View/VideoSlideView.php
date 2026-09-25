@@ -7,13 +7,17 @@
 
 declare(strict_types=1);
 
-namespace Hryvinskyi\BannerSliderFrontendUi\Model\View;
+namespace Hryvinskyi\BannerSliderFrontendUi\Api\View;
 
 use Hryvinskyi\BannerSliderFrontendUi\Api\Value\HtmlAttributes;
 
 /**
  * A video slide: the wrapper that keeps the video's aspect ratio, the player element, and for a regular (not
  * background) video the click-to-load facade that stands in for the player until the visitor asks for it.
+ *
+ * An immutable read model, the `$view` of `slide/video-iframe.phtml` and `slide/video-local.phtml`.
+ *
+ * @api
  */
 class VideoSlideView
 {

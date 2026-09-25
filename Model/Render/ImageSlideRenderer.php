@@ -16,9 +16,9 @@ use Hryvinskyi\BannerSliderFrontendUi\Api\Render\SlideRendererInterface;
 use Hryvinskyi\BannerSliderFrontendUi\Api\Render\TemplateRendererInterface;
 use Hryvinskyi\BannerSliderFrontendUi\Api\Value\HtmlAttributes;
 use Hryvinskyi\BannerSliderFrontendUi\Api\Value\SlideContext;
-use Hryvinskyi\BannerSliderFrontendUi\Model\View\ImageSlideView;
-use Hryvinskyi\BannerSliderFrontendUi\Model\View\PictureView;
-use Hryvinskyi\BannerSliderFrontendUi\Model\View\PictureViewBuilder;
+use Hryvinskyi\BannerSliderFrontendUi\Api\View\ImageSlideView;
+use Hryvinskyi\BannerSliderFrontendUi\Api\View\PictureView;
+use Hryvinskyi\BannerSliderFrontendUi\Api\View\PictureViewBuilderInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
 
 /**
@@ -38,7 +38,7 @@ use Magento\Framework\Exception\NoSuchEntityException;
 class ImageSlideRenderer implements SlideRendererInterface
 {
     /**
-     * @param PictureViewBuilder $pictureViewBuilder
+     * @param PictureViewBuilderInterface $pictureViewBuilder
      * @param TemplateRendererInterface $templateRenderer
      * @param ContentFilterInterface $contentFilter
      * @param ElementAttributePoolInterface $attributePool
@@ -46,7 +46,7 @@ class ImageSlideRenderer implements SlideRendererInterface
      * @param string $slideTemplate Template of the slide around the picture
      */
     public function __construct(
-        private readonly PictureViewBuilder $pictureViewBuilder,
+        private readonly PictureViewBuilderInterface $pictureViewBuilder,
         private readonly TemplateRendererInterface $templateRenderer,
         private readonly ContentFilterInterface $contentFilter,
         private readonly ElementAttributePoolInterface $attributePool,

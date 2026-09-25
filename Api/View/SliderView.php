@@ -7,7 +7,7 @@
 
 declare(strict_types=1);
 
-namespace Hryvinskyi\BannerSliderFrontendUi\Model\View;
+namespace Hryvinskyi\BannerSliderFrontendUi\Api\View;
 
 use Hryvinskyi\BannerSliderApi\Api\Data\BannerInterface;
 use Hryvinskyi\BannerSliderApi\Api\Data\SliderInterface;
@@ -16,6 +16,11 @@ use Hryvinskyi\BannerSliderFrontendUi\Api\Value\HtmlAttributes;
 
 /**
  * Everything the slider template renders: the container, its slides and the pause control.
+ *
+ * `slider.phtml` gets it from `$block->getSliderView()`. An immutable read model: a theme override reads it and never
+ * builds one; a slider view always has at least one slide.
+ *
+ * @api
  */
 class SliderView
 {
@@ -34,7 +39,7 @@ class SliderView
      * @param string $domId Page-unique id of the container
      * @param HtmlAttributes $containerAttributes
      * @param list<SlideView> $slides
-     * @param bool $autoplay Whether the slides advance on their own, which calls for a pause control
+     * @param bool $pauseControl Whether the pause control is rendered
      * @param string $pauseLabel Visible label of the pause control
      * @param array<int,list<PictureSource>> $pictureSources Picture sources by banner id
      * @throws \InvalidArgumentException When there is no slide
@@ -44,7 +49,7 @@ class SliderView
         private readonly string $domId,
         private readonly HtmlAttributes $containerAttributes,
         array $slides,
-        private readonly bool $autoplay,
+        private readonly bool $pauseControl,
         private readonly string $pauseLabel,
         array $pictureSources = []
     ) {
@@ -107,13 +112,13 @@ class SliderView
     }
 
     /**
-     * Whether the slider plays on its own and needs a pause control
+     * Whether the pause control is rendered: the slider plays on its own and shows its pause/play button
      *
      * @return bool
      */
     public function hasPauseControl(): bool
     {
-        return $this->autoplay;
+        return $this->pauseControl;
     }
 
     /**

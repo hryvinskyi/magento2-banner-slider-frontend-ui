@@ -14,18 +14,19 @@ use Hryvinskyi\BannerSliderApi\Api\Picture\PictureSourcesProviderInterface;
 use Hryvinskyi\BannerSliderApi\Api\Value\BannerType;
 use Hryvinskyi\BannerSliderFrontendUi\Api\Render\SlideRendererInterface;
 use Hryvinskyi\BannerSliderFrontendUi\Api\Value\SlideContext;
+use Hryvinskyi\BannerSliderFrontendUi\Api\View\SliderView;
 use Hryvinskyi\BannerSliderFrontendUi\Model\Attribute\ElementAttributePool;
 use Hryvinskyi\BannerSliderFrontendUi\Model\View\DomIdAllocator;
 use Hryvinskyi\BannerSliderFrontendUi\Model\View\FrontendAssets;
 use Hryvinskyi\BannerSliderFrontendUi\Model\View\JsonAttributeEncoder;
 use Hryvinskyi\BannerSliderFrontendUi\Model\View\SlideLoadingPolicy;
-use Hryvinskyi\BannerSliderFrontendUi\Model\View\SliderView;
 use Hryvinskyi\BannerSliderFrontendUi\Model\View\SliderViewBuilder;
 use Hryvinskyi\BannerSliderFrontendUi\Model\View\SplideConfigBuilder;
 use Hryvinskyi\BannerSliderFrontendUi\Test\Unit\Fixture\StorefrontFixtures;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\View\Asset\Repository;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\TestWith;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -181,6 +182,45 @@ class SliderViewBuilderTest extends TestCase
         self::assertSame(0, $this->contexts[2]->getPosition());
         self::assertTrue($this->contexts[2]->getLoading()->isHighPriority());
         self::assertFalse($view->hasPauseControl(), 'A single slide does not play.');
+    }
+
+    /**
+     * The pause control is rendered only for a slider that plays on its own (auto play on, more than one slide) and
+     * shows its pause/play button; the button setting never changes whether the slides play
+     *
+     * @param bool $toggle
+     * @param bool $autoplay
+     * @param int $slideCount
+     * @param bool $expected
+     * @return void
+     */
+    #[TestWith([true, true, 2, true])]
+    #[TestWith([false, true, 2, false])]
+    #[TestWith([true, false, 2, false])]
+    #[TestWith([false, false, 2, false])]
+    #[TestWith([true, true, 1, false])]
+    #[TestWith([false, true, 1, false])]
+    #[TestWith([true, false, 1, false])]
+    #[TestWith([false, false, 1, false])]
+    public function testPauseControl(bool $toggle, bool $autoplay, int $slideCount, bool $expected): void
+    {
+        $this->pictureSourcesProvider->method('getForBanners')->willReturn([]);
+
+        $view = $this->build(
+            $this->slider(['autoplay' => $autoplay, 'autoplayToggle' => $toggle]),
+            range(1, $slideCount)
+        );
+
+        self::assertSame($expected, $view->hasPauseControl());
+        $config = json_decode(
+            (string)$view->getContainerAttributes()->get('data-hbs-config'),
+            true,
+            512,
+            JSON_THROW_ON_ERROR
+        );
+        self::assertIsArray($config);
+        self::assertIsArray($config['splide']);
+        self::assertSame($autoplay && $slideCount > 1, $config['splide']['autoplay']);
     }
 
     /**

@@ -82,9 +82,11 @@ and slides, never those of the slider inside it.
 - The container is the carousel region: `role="region"`, a translated `aria-roledescription` and the slider name as
   its label. Splide's own element is not announced a second time.
 - A slider that plays automatically has a pause/play button (WCAG 2.2.2). Its label names the action a press
-  performs.
-- A visitor who prefers reduced motion gets autoplay paused (the button starts it) and background videos paused
-  behind a play button. Every background video has a pause/play button.
+  performs. The slider's "Show Pause/Play Button" setting (on by default) can remove it; without it nothing on the
+  page lets a visitor stop the slides, so switch it off only when the slider has another way to pause. Autoplay
+  still pauses while the pointer is over the slider or focus is inside it.
+- A visitor who prefers reduced motion gets autoplay paused (the button, when shown, starts it) and background videos
+  paused behind a play button. Every background video has a pause/play button.
 - A slide that leaves the view pauses its videos: native videos directly, YouTube and Vimeo players through their
   message protocols.
 - Every Splide label is translated. Images use the banner title as alternative text, or an empty `alt` when the banner
@@ -96,8 +98,8 @@ and slides, never those of the slider inside it.
 
 - **Regular videos are click-to-load.** The slide shows the banner image (or a neutral background) with a play button.
   The provider's player is created only when the visitor presses it, so no request reaches YouTube or Vimeo before
-  that. Starting the video stops the slider's autoplay (the pause button restarts it), and focus moves to the
-  player.
+  that. Starting the video stops the slider's autoplay (the pause button, when shown, restarts it), and focus moves
+  to the player.
 - **Background videos** render their player directly. Only the first slide's background video starts with the page.
   A background video on a later slide is rendered without `src` (the URL waits in `data-hbs-src`): nothing is
   downloaded or played until its slide is shown, and not then either when the visitor paused it or prefers reduced
@@ -167,7 +169,18 @@ the 1.x id `banner-slider-{slider id}` on its first render in a page.
 - **Script and style files**: the `stylesheets` and `scripts` arguments of `Model\View\FrontendAssets`.
 - **Video players in the script**: `HryvinskyiBannerSlider.registerVideoProvider(code, {pause: {…}, play: {…}})` adds
   the pause/play messages of another embedded player, keyed by its provider code.
-- **Templates**: `slider.phtml`, `slide/*.phtml` and `bootstrap.phtml` can be overridden by a theme as usual.
+- **Templates**: `slider.phtml`, `slide/*.phtml` and `bootstrap.phtml` can be overridden by a theme as usual. The
+  templates read the view objects in `Api/View`: `SliderView` (`$block->getSliderView()` in `slider.phtml`),
+  `SlideView`, `ImageSlideView` (`slide/image.phtml`), `PictureView` (`slide/picture.phtml`) and `VideoSlideView`
+  (`slide/video-*.phtml`). They are immutable read models; an override type-hints them and reads their getters.
+- **Services** (replace one with a `di.xml` preference):
+  - `Api/View/SliderViewBuilderInterface` builds the view of one slider render from the slider and its banners;
+  - `Api/View/PictureViewBuilderInterface` builds a slide's `<picture>` or `<img>`, for slide renderers that show a
+    banner image;
+  - `Api/Head/HeadAssetRegistrarInterface` adds a rendered slider's stylesheets, image preloads and custom CSS to the
+    page head;
+  - `Api/StorefrontContextProviderInterface` gives the store view, customer group and moment that decide which
+    slider and banners a visitor sees. Its values must be ones the full page cache varies on.
 
 ## Tests
 

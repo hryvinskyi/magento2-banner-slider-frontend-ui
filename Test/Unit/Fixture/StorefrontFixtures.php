@@ -35,8 +35,8 @@ trait StorefrontFixtures
      * A slider read model
      *
      * @param array{id?: int, name?: string, effect?: SlideEffect, loop?: bool, lazy?: bool, autoplay?: bool,
-     *     interval?: int, nav?: bool, dots?: bool, items?: list<ResponsiveItem>, preload?: int,
-     *     css?: string|null} $data
+     *     autoplayToggle?: bool, interval?: int, nav?: bool, dots?: bool, items?: list<ResponsiveItem>,
+     *     preload?: int, css?: string|null} $data
      * @return SliderInterface&MockObject
      */
     private function slider(array $data = []): SliderInterface
@@ -48,6 +48,7 @@ trait StorefrontFixtures
         $slider->method('isLoopEnabled')->willReturn($data['loop'] ?? false);
         $slider->method('isLazyLoadEnabled')->willReturn($data['lazy'] ?? true);
         $slider->method('isAutoPlayEnabled')->willReturn($data['autoplay'] ?? true);
+        $slider->method('isAutoPlayToggleEnabled')->willReturn($data['autoplayToggle'] ?? true);
         $slider->method('getAutoPlayInterval')->willReturn($data['interval'] ?? 5000);
         $slider->method('isNavigationEnabled')->willReturn($data['nav'] ?? true);
         $slider->method('isPaginationEnabled')->willReturn($data['dots'] ?? true);

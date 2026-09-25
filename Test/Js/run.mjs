@@ -393,6 +393,20 @@ function sliderElement(config = {}, slides = [], attributes = {}) {
 }
 
 /**
+ * A slider container rendered without the autoplay pause/play button, as the server renders a slider whose button
+ * setting is off
+ *
+ * @return {FakeElement}
+ */
+function sliderElementWithoutToggle(config = {}, slides = []) {
+    const element = sliderElement(config, slides);
+
+    element.removeChild(element.querySelector('[data-hbs-toggle]'));
+
+    return element;
+}
+
+/**
  * A slide
  *
  * @return {FakeElement}
@@ -679,6 +693,36 @@ test('a slider without autoplay leaves the toggle hidden', () => {
     assert.equal(toggle.hidden, true);
 });
 
+test('without a pause/play button autoplay runs as configured and no button is created', () => {
+    const {api, warnings} = loadSlider();
+    const Splide = fakeSplide();
+    const element = sliderElementWithoutToggle({}, [slide(), slide()]);
+    fakeDocument({}, element);
+
+    const instance = api.mount(element, Splide);
+
+    assert.equal(instance, Splide.instances[0]);
+    assert.equal(instance.mounted, true);
+    assert.equal(instance.options.autoplay, true);
+    assert.deepEqual(instance.autoplayCalls, []);
+    assert.equal(element.querySelector('[data-hbs-toggle]'), null);
+    assert.deepEqual(warnings, []);
+});
+
+test('without a pause/play button reduced motion still starts autoplay paused', () => {
+    const {api, warnings} = loadSlider();
+    const Splide = fakeSplide();
+    const element = sliderElementWithoutToggle({}, [slide(), slide()]);
+    fakeDocument({reducedMotion: true}, element);
+
+    const instance = api.mount(element, Splide);
+
+    assert.equal(instance.options.autoplay, 'pause');
+    assert.deepEqual(instance.autoplayCalls, []);
+    assert.equal(element.querySelector('[data-hbs-toggle]'), null);
+    assert.deepEqual(warnings, []);
+});
+
 test('with reduced motion autoplay starts paused and background videos pause behind a play button', () => {
     const {api} = loadSlider();
     const Splide = fakeSplide();
@@ -764,6 +808,40 @@ test('starting a click-to-load video stops the autoplay of its slider', () => {
     assert.equal(wrapper.querySelector('[data-hbs-video]').getAttribute('data-hbs-provider'), 'youtube');
     assert.deepEqual(instance.autoplayCalls, ['pause']);
     assert.equal(element.querySelector('[data-hbs-toggle]').textContent, 'Start autoplay');
+});
+
+test('starting a click-to-load video stops autoplay also when the slider has no pause/play button', () => {
+    const {api, warnings} = loadSlider();
+    const Splide = fakeSplide();
+    const player = embed('youtube', 'https://www.youtube-nocookie.com/embed/abc?autoplay=1');
+    const button = h('button', {type: 'button', class: 'hbs-slide__facade', 'data-hbs-facade': ''});
+    const wrapper = h('div', {class: 'hbs-slide__video'}, button, template({'data-hbs-player': ''}, player));
+    const element = sliderElementWithoutToggle({hasVideo: true}, [slide(wrapper), slide()]);
+    fakeDocument({}, element);
+
+    const instance = api.mount(element, Splide);
+    button.click();
+
+    assert.equal(wrapper.querySelector('[data-hbs-facade]'), null);
+    assert.deepEqual(instance.autoplayCalls, ['pause']);
+    assert.equal(element.querySelector('[data-hbs-toggle]'), null);
+    assert.deepEqual(warnings, []);
+});
+
+test('starting a click-to-load video in a slider without autoplay touches no autoplay', () => {
+    const {api} = loadSlider();
+    const Splide = fakeSplide();
+    const button = h('button', {type: 'button', class: 'hbs-slide__facade', 'data-hbs-facade': ''});
+    const player = embed('youtube', 'https://www.youtube-nocookie.com/embed/abc?autoplay=1');
+    const wrapper = h('div', {class: 'hbs-slide__video'}, button, template({'data-hbs-player': ''}, player));
+    const element = sliderElement({hasVideo: true, splide: {type: 'slide', autoplay: false}}, [slide(wrapper), slide()]);
+    fakeDocument({}, element);
+
+    const instance = api.mount(element, Splide);
+    button.click();
+
+    assert.equal(wrapper.querySelector('[data-hbs-facade]'), null);
+    assert.deepEqual(instance.autoplayCalls, []);
 });
 
 test('without Splide one warning is logged, the slider stays as rendered, and videos still open', () => {

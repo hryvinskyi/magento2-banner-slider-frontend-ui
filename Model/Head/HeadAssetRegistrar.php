@@ -10,10 +10,10 @@ declare(strict_types=1);
 namespace Hryvinskyi\BannerSliderFrontendUi\Model\Head;
 
 use Hryvinskyi\BannerSliderApi\Api\Data\SliderInterface;
+use Hryvinskyi\BannerSliderFrontendUi\Api\Head\HeadAssetRegistrarInterface;
+use Hryvinskyi\BannerSliderFrontendUi\Api\View\SliderView;
 use Hryvinskyi\BannerSliderFrontendUi\Model\View\FrontendAssets;
-use Hryvinskyi\BannerSliderFrontendUi\Model\View\SliderView;
 use Hryvinskyi\HeadTagManager\Api\HeadTagManagerInterface;
-use Magento\Framework\Exception\LocalizedException;
 
 /**
  * Adds what a rendered slider needs to the page head: its stylesheets, the preload links of its leading images and
@@ -26,7 +26,7 @@ use Magento\Framework\Exception\LocalizedException;
  * The head is assembled when the page response is built, so this only reaches the page for a slider rendered as
  * part of it; a slider served as a separately cached fragment (an ESI block) cannot add head elements.
  */
-class HeadAssetRegistrar
+class HeadAssetRegistrar implements HeadAssetRegistrarInterface
 {
     private const CUSTOM_CSS_KEY_PREFIX = 'hryvinskyi_banner_slider_css_';
 
@@ -43,11 +43,7 @@ class HeadAssetRegistrar
     }
 
     /**
-     * Register the head elements of a rendered slider
-     *
-     * @param SliderView $view
-     * @return void
-     * @throws LocalizedException When a stylesheet URL cannot be resolved
+     * @inheritDoc
      */
     public function register(SliderView $view): void
     {

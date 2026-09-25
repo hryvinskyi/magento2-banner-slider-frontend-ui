@@ -16,17 +16,17 @@ use Hryvinskyi\BannerSliderApi\Api\Data\SliderInterface;
 use Hryvinskyi\BannerSliderApi\Api\Picture\PictureSourcesProviderInterface;
 use Hryvinskyi\BannerSliderApi\Api\Slider\SliderLocatorInterface;
 use Hryvinskyi\BannerSliderApi\Api\Value\StorefrontContext;
+use Hryvinskyi\BannerSliderFrontendUi\Api\Head\HeadAssetRegistrarInterface;
 use Hryvinskyi\BannerSliderFrontendUi\Api\Render\SlideRendererInterface;
+use Hryvinskyi\BannerSliderFrontendUi\Api\StorefrontContextProviderInterface;
 use Hryvinskyi\BannerSliderFrontendUi\Api\Value\SlideContext;
+use Hryvinskyi\BannerSliderFrontendUi\Api\View\SliderView;
 use Hryvinskyi\BannerSliderFrontendUi\Block\Widget\Slider;
 use Hryvinskyi\BannerSliderFrontendUi\Model\Attribute\ElementAttributePool;
-use Hryvinskyi\BannerSliderFrontendUi\Model\Head\HeadAssetRegistrar;
-use Hryvinskyi\BannerSliderFrontendUi\Model\StorefrontContextProvider;
 use Hryvinskyi\BannerSliderFrontendUi\Model\View\DomIdAllocator;
 use Hryvinskyi\BannerSliderFrontendUi\Model\View\FrontendAssets;
 use Hryvinskyi\BannerSliderFrontendUi\Model\View\JsonAttributeEncoder;
 use Hryvinskyi\BannerSliderFrontendUi\Model\View\SlideLoadingPolicy;
-use Hryvinskyi\BannerSliderFrontendUi\Model\View\SliderView;
 use Hryvinskyi\BannerSliderFrontendUi\Model\View\SliderViewBuilder;
 use Hryvinskyi\BannerSliderFrontendUi\Model\View\SplideConfigBuilder;
 use Hryvinskyi\BannerSliderFrontendUi\Test\Unit\Fixture\StorefrontFixtures;
@@ -58,7 +58,7 @@ class SliderTest extends TestCase
     private MockObject $visibleBannersProvider;
 
     /**
-     * @var HeadAssetRegistrar&MockObject
+     * @var HeadAssetRegistrarInterface&MockObject
      */
     private MockObject $headAssetRegistrar;
 
@@ -94,7 +94,7 @@ class SliderTest extends TestCase
     {
         $this->sliderLocator = $this->createMock(SliderLocatorInterface::class);
         $this->visibleBannersProvider = $this->createMock(VisibleBannersProviderInterface::class);
-        $this->headAssetRegistrar = $this->createMock(HeadAssetRegistrar::class);
+        $this->headAssetRegistrar = $this->createMock(HeadAssetRegistrarInterface::class);
         $this->logger = $this->createMock(LoggerInterface::class);
         $this->templates = new TemplateRendererSpy();
         $this->domIdAllocator = new DomIdAllocator();
@@ -361,7 +361,7 @@ class SliderTest extends TestCase
         $context->method('getEventManager')->willReturn($this->createMock(ManagerInterface::class));
         $context->method('getScopeConfig')->willReturn($this->createMock(ScopeConfigInterface::class));
 
-        $storefrontContextProvider = $this->createMock(StorefrontContextProvider::class);
+        $storefrontContextProvider = $this->createMock(StorefrontContextProviderInterface::class);
         $storefrontContextProvider->method('get')->willReturn($this->storefrontContext);
 
         $block = $this->getMockBuilder(Slider::class)

@@ -2,7 +2,7 @@
     "name": "hryvinskyi/magento2-banner-slider-frontend-ui",
     "description": "Banner Slider frontend module: slider widget and block, responsive pictures, video embeds and slider scripts",
     "type": "magento2-module",
-    "version": "2.0.0",
+    "version": "2.1.0",
     "license": "MIT",
     "authors": [
         {
@@ -12,8 +12,8 @@
     ],
     "require": {
         "php": "~8.3.0||~8.4.0",
-        "hryvinskyi/magento2-banner-slider": "^2.0",
-        "hryvinskyi/magento2-banner-slider-api": "^2.0",
+        "hryvinskyi/magento2-banner-slider": "^2.1",
+        "hryvinskyi/magento2-banner-slider-api": "^2.1",
         "hryvinskyi/magento2-head-tag-manager": "^2.3",
         "hryvinskyi/magento2-splide-js": "^1.0",
         "magento/framework": "^103.0.7",

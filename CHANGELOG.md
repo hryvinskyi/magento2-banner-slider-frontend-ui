@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-09-25
+
+Requires `hryvinskyi/magento2-banner-slider-api` 2.1 and `hryvinskyi/magento2-banner-slider` 2.1.
+
+### Added
+- Service interfaces, marked `@api`, for what the block and the slide renderers use:
+  `Api\View\SliderViewBuilderInterface`, `Api\View\PictureViewBuilderInterface`,
+  `Api\Head\HeadAssetRegistrarInterface` and `Api\StorefrontContextProviderInterface`, each preferred to the
+  existing class in `di.xml`. The block and the image and video slide renderers now inject the interfaces, so a
+  module replaces one of these services with a preference.
+
+### Changed
+- The view objects the templates read moved from `Model\View` to `Api\View` and are marked `@api`; their methods
+  are unchanged. A theme override (or any code) that type-hints one of them must use the new name (all under
+  `Hryvinskyi\BannerSliderFrontendUi\`):
+  - `Model\View\SliderView` → `Api\View\SliderView`
+  - `Model\View\SlideView` → `Api\View\SlideView`
+  - `Model\View\ImageSlideView` → `Api\View\ImageSlideView`
+  - `Model\View\VideoSlideView` → `Api\View\VideoSlideView`
+  - `Model\View\PictureView` → `Api\View\PictureView`
+
+  The old names are gone; there are no class aliases.
+- The autoplay pause/play button follows the slider's new "Show Pause/Play Button" setting: it is rendered only when
+  autoplay is on, there is more than one slide, and the setting is on (the default). Autoplay itself does not depend
+  on the setting.
+
+### Fixed
+- Starting a click-to-load video stops the slider's autoplay also when the slider has no pause/play button.
+
 ## [2.0.0] - 2026-09-25
 
 A breaking release on `hryvinskyi/magento2-banner-slider-api` and `hryvinskyi/magento2-banner-slider` 2.0. The block

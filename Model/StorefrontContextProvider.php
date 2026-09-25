@@ -10,9 +10,9 @@ declare(strict_types=1);
 namespace Hryvinskyi\BannerSliderFrontendUi\Model;
 
 use Hryvinskyi\BannerSliderApi\Api\Value\StorefrontContext;
+use Hryvinskyi\BannerSliderFrontendUi\Api\StorefrontContextProviderInterface;
 use Magento\Customer\Model\Context as CustomerContext;
 use Magento\Framework\App\Http\Context as HttpContext;
-use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Store\Model\StoreManagerInterface;
 use Psr\Clock\ClockInterface;
 
@@ -22,7 +22,7 @@ use Psr\Clock\ClockInterface;
  * The customer group comes from the HTTP context, which the full page cache varies on, so a cached page always
  * matches the group it was rendered for. A request without a group in the context is a guest (group 0).
  */
-class StorefrontContextProvider
+class StorefrontContextProvider implements StorefrontContextProviderInterface
 {
     /**
      * @param StoreManagerInterface $storeManager
@@ -37,10 +37,7 @@ class StorefrontContextProvider
     }
 
     /**
-     * The context of the current request
-     *
-     * @return StorefrontContext
-     * @throws NoSuchEntityException When the current store cannot be resolved
+     * @inheritDoc
      */
     public function get(): StorefrontContext
     {

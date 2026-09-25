@@ -7,13 +7,17 @@
 
 declare(strict_types=1);
 
-namespace Hryvinskyi\BannerSliderFrontendUi\Model\View;
+namespace Hryvinskyi\BannerSliderFrontendUi\Api\View;
 
 use Hryvinskyi\BannerSliderApi\Api\Data\BannerInterface;
 use Hryvinskyi\BannerSliderFrontendUi\Api\Value\HtmlAttributes;
 
 /**
  * One rendered slide: the attributes of its `<li>` and the HTML inside it.
+ *
+ * An immutable read model, listed by `SliderView::getSlides()`.
+ *
+ * @api
  */
 class SlideView
 {

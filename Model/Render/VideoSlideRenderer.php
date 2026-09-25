@@ -20,8 +20,8 @@ use Hryvinskyi\BannerSliderFrontendUi\Api\Render\SlideRendererInterface;
 use Hryvinskyi\BannerSliderFrontendUi\Api\Render\TemplateRendererInterface;
 use Hryvinskyi\BannerSliderFrontendUi\Api\Value\HtmlAttributes;
 use Hryvinskyi\BannerSliderFrontendUi\Api\Value\SlideContext;
-use Hryvinskyi\BannerSliderFrontendUi\Model\View\PictureViewBuilder;
-use Hryvinskyi\BannerSliderFrontendUi\Model\View\VideoSlideView;
+use Hryvinskyi\BannerSliderFrontendUi\Api\View\PictureViewBuilderInterface;
+use Hryvinskyi\BannerSliderFrontendUi\Api\View\VideoSlideView;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Psr\Log\LoggerInterface;
 
@@ -56,7 +56,7 @@ class VideoSlideRenderer implements SlideRendererInterface
      * @param ProviderResolverInterface $providerResolver
      * @param VideoConfigInterface $videoConfig
      * @param MediaUrlResolverInterface $mediaUrlResolver
-     * @param PictureViewBuilder $pictureViewBuilder
+     * @param PictureViewBuilderInterface $pictureViewBuilder
      * @param TemplateRendererInterface $templateRenderer
      * @param ContentFilterInterface $contentFilter
      * @param LoggerInterface $logger
@@ -66,7 +66,7 @@ class VideoSlideRenderer implements SlideRendererInterface
         private readonly ProviderResolverInterface $providerResolver,
         private readonly VideoConfigInterface $videoConfig,
         private readonly MediaUrlResolverInterface $mediaUrlResolver,
-        private readonly PictureViewBuilder $pictureViewBuilder,
+        private readonly PictureViewBuilderInterface $pictureViewBuilder,
         private readonly TemplateRendererInterface $templateRenderer,
         private readonly ContentFilterInterface $contentFilter,
         private readonly LoggerInterface $logger,
