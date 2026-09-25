@@ -8,20 +8,18 @@
 -->
 <widgets xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Widget:etc/widget.xsd">
-    <widget id="hryvinskyi_banner_slider"
-            class="Hryvinskyi\BannerSliderFrontendUi\Block\Widget\Slider"
-            placeholder_image="Hryvinskyi_BannerSliderFrontendUi::images/widget_placeholder.png">
+    <widget id="hryvinskyi_banner_slider" class="Hryvinskyi\BannerSliderFrontendUi\Block\Widget\Slider">
         <label translate="true">Banner Slider</label>
-        <description translate="true">Displays a banner slider on the page</description>
+        <description translate="true">Displays a banner slider chosen by slider or by location</description>
         <parameters>
             <parameter name="slider_id" xsi:type="select" required="false" visible="true"
-                       source_model="Hryvinskyi\BannerSliderAdminUi\Model\Source\Slider">
+                       source_model="Hryvinskyi\BannerSliderFrontendUi\Model\Source\WidgetSliderOptions">
                 <label translate="true">Slider</label>
-                <description translate="true">Select a specific slider by ID. Takes precedence over location.</description>
+                <description translate="true">The slider to show. Takes precedence over the location.</description>
             </parameter>
             <parameter name="location" xsi:type="text" required="false" visible="true">
                 <label translate="true">Location</label>
-                <description translate="true">Enter location identifier to display slider assigned to this location. Used when Slider is not selected.</description>
+                <description translate="true">Location code: the slider with the lowest priority value placed there is shown. Used when no slider is chosen. The widget shows nothing when neither finds a slider.</description>
             </parameter>
             <parameter name="template" xsi:type="select" required="true" visible="true">
                 <label translate="true">Template</label>

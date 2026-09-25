@@ -1,0 +1,48 @@
+<?php
+/**
+ * Copyright (c) 2026. Volodymyr Hryvinskyi. All rights reserved.
+ * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
+ * GitHub: https://github.com/hryvinskyi
+ */
+
+declare(strict_types=1);
+
+use Hryvinskyi\BannerSliderFrontendUi\Model\View\VideoSlideView;
+use Magento\Framework\Escaper;
+
+/**
+ * A video slide played by a native video element.
+ *
+ * A regular video shows a click-to-load facade; the video element waits inside the `<template>` until the visitor
+ * presses the button. A background video renders its video element directly.
+ *
+ * @var VideoSlideView $view
+ * @var Escaper $escaper
+ */
+
+$facadeImage = $view->getFacadeImage();
+$posterUrl = $view->getPosterUrl();
+$posterHtml = $posterUrl !== null ? ' poster="' . $escaper->escapeUrl($posterUrl) . '"' : '';
+?>
+<div<?= /* @noEscape */ $view->getWrapper()->render($escaper) ?>>
+    <?php if ($view->hasFacade()): ?>
+        <button type="button" class="hbs-slide__facade" data-hbs-facade>
+            <?php if ($facadeImage !== null): ?>
+                <img<?= /* @noEscape */ $facadeImage->render($escaper) ?>>
+            <?php endif; ?>
+            <span class="hbs-slide__facade-label"><?= $escaper->escapeHtml($view->getFacadeLabel()) ?></span>
+        </button>
+        <template data-hbs-player>
+            <video<?= /* @noEscape */ $view->getPlayer()->render($escaper) . $posterHtml ?>>
+                <?= $escaper->escapeHtml($view->getFallbackText()) ?>
+            </video>
+        </template>
+    <?php else: ?>
+        <video<?= /* @noEscape */ $view->getPlayer()->render($escaper) . $posterHtml ?>>
+            <?= $escaper->escapeHtml($view->getFallbackText()) ?>
+        </video>
+    <?php endif; ?>
+</div>
+<?php if ($view->getOverlayHtml() !== ''): ?>
+    <div class="hbs-slide__overlay"><?= /* @noEscape */ $view->getOverlayHtml() ?></div>
+<?php endif; ?>

@@ -13,110 +13,80 @@ use Hryvinskyi\BannerSliderApi\Api\Data\BannerInterface;
 use Hryvinskyi\BannerSliderApi\Api\Data\SliderInterface;
 use Hryvinskyi\BannerSliderFrontendUi\Api\Attribute\ElementAttributePoolInterface;
 use Hryvinskyi\BannerSliderFrontendUi\Api\Attribute\ElementAttributeProviderInterface;
+use Hryvinskyi\BannerSliderFrontendUi\Api\Value\HtmlAttributes;
 
 /**
- * Pool for collecting and merging element attributes from registered providers
+ * Merges the attributes of every registered provider, lowest sort order first, on top of an element's own
+ * attributes.
  */
 class ElementAttributePool implements ElementAttributePoolInterface
 {
     /**
-     * @var array<ElementAttributeProviderInterface>|null
+     * @var list<ElementAttributeProviderInterface>
      */
-    private ?array $sortedProviders = null;
+    private readonly array $providers;
 
     /**
-     * @param array<ElementAttributeProviderInterface> $providers
+     * @param array<string,ElementAttributeProviderInterface> $providers Registered in `di.xml`
      */
-    public function __construct(
-        private readonly array $providers = []
-    ) {
+    public function __construct(array $providers = [])
+    {
+        $sorted = array_values($providers);
+        usort(
+            $sorted,
+            fn (ElementAttributeProviderInterface $a, ElementAttributeProviderInterface $b): int =>
+                $a->getSortOrder() <=> $b->getSortOrder()
+        );
+        $this->providers = $sorted;
     }
 
     /**
-     * {@inheritDoc}
+     * @inheritDoc
      */
-    public function getContainerAttributes(SliderInterface $slider, array $banners): array
-    {
-        $attributes = [];
-        foreach ($this->getSortedProviders() as $provider) {
-            $providerAttributes = $provider->getContainerAttributes($slider, $banners);
-            $attributes = $this->mergeAttributes($attributes, $providerAttributes);
-        }
-
-        return $attributes;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getSlideAttributes(SliderInterface $slider, BannerInterface $banner): array
-    {
-        $attributes = [];
-        foreach ($this->getSortedProviders() as $provider) {
-            $providerAttributes = $provider->getSlideAttributes($slider, $banner);
-            $attributes = $this->mergeAttributes($attributes, $providerAttributes);
-        }
-
-        return $attributes;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function getLinkAttributes(SliderInterface $slider, BannerInterface $banner): array
-    {
-        $attributes = [];
-        foreach ($this->getSortedProviders() as $provider) {
-            $providerAttributes = $provider->getLinkAttributes($slider, $banner);
-            $attributes = $this->mergeAttributes($attributes, $providerAttributes);
-        }
-
-        return $attributes;
-    }
-
-    /**
-     * Get providers sorted by sort order
-     *
-     * @return array<ElementAttributeProviderInterface>
-     */
-    private function getSortedProviders(): array
-    {
-        if ($this->sortedProviders === null) {
-            $this->sortedProviders = $this->providers;
-            usort(
-                $this->sortedProviders,
-                static fn(ElementAttributeProviderInterface $a, ElementAttributeProviderInterface $b): int =>
-                    $a->getSortOrder() <=> $b->getSortOrder()
+    public function getContainerAttributes(
+        SliderInterface $slider,
+        array $banners,
+        HtmlAttributes $base
+    ): HtmlAttributes {
+        $attributes = $base;
+        foreach ($this->providers as $provider) {
+            $attributes = $attributes->merge(
+                new HtmlAttributes($provider->getContainerAttributes($slider, $banners))
             );
         }
 
-        return $this->sortedProviders;
+        return $attributes;
     }
 
     /**
-     * Merge attributes with special handling for class attribute
-     *
-     * @param array<string, string|bool|int> $existing
-     * @param array<string, string|bool|int> $new
-     * @return array<string, string|bool|int>
+     * @inheritDoc
      */
-    private function mergeAttributes(array $existing, array $new): array
-    {
-        foreach ($new as $name => $value) {
-            if ($name === 'class' && isset($existing['class'])) {
-                $existingClasses = is_string($existing['class'])
-                    ? explode(' ', $existing['class'])
-                    : [$existing['class']];
-                $newClasses = is_string($value)
-                    ? explode(' ', $value)
-                    : [$value];
-                $merged = array_unique(array_merge($existingClasses, $newClasses));
-                $existing['class'] = implode(' ', array_filter($merged));
-            } else {
-                $existing[$name] = $value;
-            }
+    public function getSlideAttributes(
+        SliderInterface $slider,
+        BannerInterface $banner,
+        HtmlAttributes $base
+    ): HtmlAttributes {
+        $attributes = $base;
+        foreach ($this->providers as $provider) {
+            $attributes = $attributes->merge(new HtmlAttributes($provider->getSlideAttributes($slider, $banner)));
         }
 
-        return $existing;
+        return $attributes;
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function getLinkAttributes(
+        SliderInterface $slider,
+        BannerInterface $banner,
+        HtmlAttributes $base
+    ): HtmlAttributes {
+        $attributes = $base;
+        foreach ($this->providers as $provider) {
+            $attributes = $attributes->merge(new HtmlAttributes($provider->getLinkAttributes($slider, $banner)));
+        }
+
+        return $attributes;
     }
 }

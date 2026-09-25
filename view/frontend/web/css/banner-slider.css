@@ -1,0 +1,317 @@
+/**
+ * Copyright (c) 2026. Volodymyr Hryvinskyi. All rights reserved.
+ * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
+ * GitHub: https://github.com/hryvinskyi
+ */
+
+/*
+ * Banner slider. Plain CSS, so it works in any theme without a preprocessor.
+ *
+ * Themes adjust the look through the custom properties on `.hbs-slider`. The classes `banner-slider-{id}` and the
+ * id `banner-slider-{id}` on the container are left unstyled here: they are the hooks for a slider's own custom CSS.
+ */
+
+.hbs-slider {
+    --hbs-control-size: 44px;
+    --hbs-control-background: rgba(255, 255, 255, 0.85);
+    --hbs-control-color: #1a1a1a;
+    --hbs-focus-color: #005fcc;
+    --hbs-dot-size: 10px;
+    --hbs-dot-color: rgba(255, 255, 255, 0.6);
+    --hbs-dot-active-color: #fff;
+    --hbs-video-background: #000;
+    --hbs-offset: 12px;
+
+    position: relative;
+    width: 100%;
+}
+
+/* Before Splide starts, or when it cannot, the first slide shows at full width */
+
+.hbs-slider .splide {
+    visibility: visible;
+}
+
+.hbs-slider .splide:not(.is-initialized) .splide__slide {
+    width: 100%;
+}
+
+/* Slides */
+
+.hbs-slide {
+    position: relative;
+}
+
+.hbs-slide__link {
+    display: block;
+    color: inherit;
+    text-decoration: none;
+}
+
+.hbs-slide__media {
+    display: block;
+    width: 100%;
+}
+
+img.hbs-slide__media,
+video.hbs-slide__media {
+    height: auto;
+}
+
+.hbs-slide__content {
+    width: 100%;
+}
+
+/* Banner content over an image or video: only its own links and controls take clicks */
+
+.hbs-slide__overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.hbs-slide__overlay a,
+.hbs-slide__overlay button,
+.hbs-slide__overlay input,
+.hbs-slide__overlay select,
+.hbs-slide__overlay textarea,
+.hbs-slide__overlay label,
+.hbs-slide__overlay [tabindex] {
+    pointer-events: auto;
+}
+
+/* Video */
+
+.hbs-slide__video {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: var(--hbs-aspect-ratio, 16 / 9);
+    background: var(--hbs-video-background);
+}
+
+.hbs-slide__player {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
+video.hbs-slide__player {
+    object-fit: cover;
+}
+
+/* Click-to-load video: the poster and a play icon until the visitor starts the video */
+
+.hbs-slider .hbs-slide__facade {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+    min-height: 0;
+    box-sizing: border-box;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: var(--hbs-video-background);
+    cursor: pointer;
+}
+
+.hbs-slide__poster {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.hbs-slider .hbs-slide__facade::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.65);
+    transform: translate(-50%, -50%);
+    transition: background-color 0.2s ease;
+}
+
+.hbs-slider .hbs-slide__facade::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    border-style: solid;
+    border-width: 13px 0 13px 22px;
+    border-color: transparent transparent transparent #fff;
+    transform: translate(-35%, -50%);
+}
+
+.hbs-slider .hbs-slide__facade:hover::before,
+.hbs-slider .hbs-slide__facade:focus-visible::before {
+    background: rgba(0, 0, 0, 0.85);
+}
+
+.hbs-slide__facade-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Pause/play buttons: the slider's autoplay toggle and each background video's toggle */
+
+.hbs-slider .hbs-slider__toggle,
+.hbs-slider .hbs-slide__video-toggle {
+    position: absolute;
+    z-index: 2;
+    width: var(--hbs-control-size);
+    height: var(--hbs-control-size);
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    box-sizing: border-box;
+    border: 0;
+    border-radius: 50%;
+    box-shadow: none;
+    font-size: 0;
+    line-height: 0;
+    background: var(--hbs-control-background);
+    color: var(--hbs-control-color);
+    white-space: nowrap;
+    text-indent: 200%;
+    cursor: pointer;
+}
+
+.hbs-slider .hbs-slider__toggle[hidden],
+.hbs-slider .hbs-slide__video-toggle[hidden] {
+    display: none;
+}
+
+.hbs-slider .hbs-slider__toggle {
+    bottom: var(--hbs-offset);
+    left: var(--hbs-offset);
+}
+
+.hbs-slider .hbs-slide__video-toggle {
+    right: var(--hbs-offset);
+    bottom: var(--hbs-offset);
+}
+
+/* Pause icon: two bars */
+.hbs-slider .hbs-slider__toggle::before,
+.hbs-slider .hbs-slide__video-toggle::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 12px;
+    height: 14px;
+    border-right: 4px solid currentColor;
+    border-left: 4px solid currentColor;
+    box-sizing: border-box;
+    transform: translate(-50%, -50%);
+}
+
+/* Play icon: a triangle */
+.hbs-slider .hbs-slider__toggle[data-hbs-state="paused"]::before,
+.hbs-slider .hbs-slide__video-toggle[data-hbs-state="paused"]::before {
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 7px 0 7px 12px;
+    border-color: transparent transparent transparent currentColor;
+    transform: translate(-35%, -50%);
+}
+
+/* Arrows and pagination */
+
+.hbs-slider .splide__arrow {
+    width: var(--hbs-control-size);
+    height: var(--hbs-control-size);
+    background: var(--hbs-control-background);
+    opacity: 1;
+}
+
+.hbs-slider .splide__arrow svg {
+    fill: var(--hbs-control-color);
+}
+
+.hbs-slider .splide__arrow:disabled {
+    opacity: 0.4;
+}
+
+/* Each dot keeps a 24 × 24 px hit area whatever size it is drawn */
+.hbs-slider .splide__pagination__page {
+    position: relative;
+    width: 24px;
+    min-width: 24px;
+    height: 24px;
+    min-height: 24px;
+    margin: 0;
+    background: transparent;
+    opacity: 1;
+    transform: none;
+}
+
+.hbs-slider .splide__pagination__page::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: var(--hbs-dot-size);
+    height: var(--hbs-dot-size);
+    border-radius: 50%;
+    background: var(--hbs-dot-color);
+    transform: translate(-50%, -50%);
+    transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.hbs-slider .splide__pagination__page.is-active {
+    transform: none;
+}
+
+.hbs-slider .splide__pagination__page.is-active::before {
+    background: var(--hbs-dot-active-color);
+    transform: translate(-50%, -50%) scale(1.3);
+}
+
+/* Focus */
+
+.hbs-slide__link:focus-visible,
+.hbs-slider .hbs-slide__facade:focus-visible {
+    outline: 3px solid var(--hbs-focus-color);
+    outline-offset: -3px;
+}
+
+.hbs-slider .hbs-slider__toggle:focus-visible,
+.hbs-slider .hbs-slide__video-toggle:focus-visible,
+.hbs-slider .splide__arrow:focus-visible,
+.hbs-slider .splide__pagination__page:focus-visible {
+    outline: 3px solid var(--hbs-focus-color);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hbs-slider .hbs-slide__facade::before,
+    .hbs-slider .splide__pagination__page::before {
+        transition: none;
+    }
+}

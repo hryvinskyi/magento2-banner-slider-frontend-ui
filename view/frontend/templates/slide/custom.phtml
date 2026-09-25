@@ -1,0 +1,17 @@
+<?php
+/**
+ * Copyright (c) 2026. Volodymyr Hryvinskyi. All rights reserved.
+ * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
+ * GitHub: https://github.com/hryvinskyi
+ */
+
+declare(strict_types=1);
+
+/**
+ * A custom HTML slide: the banner content, with its CMS directives already processed. The content is trusted admin
+ * HTML and is output as it is.
+ *
+ * @var string $contentHtml
+ */
+?>
+<div class="hbs-slide__content"><?= /* @noEscape */ $contentHtml ?></div>

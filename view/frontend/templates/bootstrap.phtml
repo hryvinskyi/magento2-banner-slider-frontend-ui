@@ -1,0 +1,153 @@
+<?php
+/**
+ * Copyright (c) 2026. Volodymyr Hryvinskyi. All rights reserved.
+ * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
+ * GitHub: https://github.com/hryvinskyi
+ */
+
+declare(strict_types=1);
+
+use Magento\Framework\Escaper;
+use Magento\Framework\View\Helper\SecureHtmlRenderer;
+
+/**
+ * Starts the sliders on a page without RequireJS. Rendered after every slider container; the script it emits must be
+ * idempotent, because a page with several sliders emits it several times.
+ *
+ * - With RequireJS on the page (a `require` function with `defined`) it does nothing: the container's
+ *   `data-mage-init` starts the slider. A `require` configuration object or another module loader does not count.
+ * - The slider it starts is the container right before it; when something sits in between, the last slider on the
+ *   page so far.
+ * - The first run reads the script URLs from the container's `data-hbs-assets` and injects what the page lacks:
+ *   Splide unless `window.Splide` exists (a theme's own Splide is used as it is), then the slider script unless
+ *   `window.HryvinskyiBannerSlider` exists, both with `async = false` so they run in that order. A window flag keeps
+ *   later runs from injecting them again.
+ * - Each run queues the slider it follows; the queue is started once the last injected script has loaded. A run
+ *   after that starts its slider at once.
+ * - Each slider starts on its own: one that fails logs a warning and the others still start.
+ * - Once the document is parsed, the slider script also starts sliders added to the page later.
+ *
+ * The script is static: it carries no request or customer data.
+ *
+ * @var Escaper $escaper
+ * @var SecureHtmlRenderer $secureRenderer
+ */
+
+$script = <<<'JS'
+(function (w, d) {
+    'use strict';
+
+    var current = d.currentScript,
+        previous = current && current.previousElementSibling,
+        loader = w.hryvinskyiBannerSliderLoader,
+        sliders,
+        slider,
+        queue,
+        api = null,
+        assets,
+        missing = [];
+
+    if (typeof w.require === 'function' && typeof w.require.defined === 'function') {
+        return;
+    }
+
+    if (previous && typeof previous.hasAttribute === 'function' && previous.hasAttribute('data-hbs-slider')) {
+        slider = previous;
+    } else {
+        sliders = d.querySelectorAll('[data-hbs-slider]');
+        slider = sliders[sliders.length - 1];
+    }
+
+    if (loader) {
+        loader.add(slider);
+        return;
+    }
+
+    if (!slider) {
+        return;
+    }
+
+    try {
+        assets = JSON.parse(slider.getAttribute('data-hbs-assets'));
+    } catch (e) {
+        return;
+    }
+
+    if (!assets || typeof assets.splide !== 'string' || typeof assets.slider !== 'string') {
+        return;
+    }
+
+    function warn(error) {
+        if (w.console && typeof w.console.warn === 'function') {
+            w.console.warn('Banner slider: a slider could not be started.', error);
+        }
+    }
+
+    function mount(element) {
+        try {
+            api.mount(element, w.Splide);
+        } catch (error) {
+            warn(error);
+        }
+    }
+
+    queue = [slider];
+    w.hryvinskyiBannerSliderLoader = {
+        add: function (element) {
+            if (!element) {
+                return;
+            }
+            if (api) {
+                mount(element);
+                return;
+            }
+            queue.push(element);
+        }
+    };
+
+    function start() {
+        api = w.HryvinskyiBannerSlider || null;
+        if (!api) {
+            return;
+        }
+        queue.forEach(mount);
+        queue = [];
+        try {
+            api.observe(d, w.Splide);
+        } catch (error) {
+            warn(error);
+        }
+    }
+
+    function inject(src, onLoad) {
+        var script = d.createElement('script');
+
+        script.src = src;
+        script.async = false;
+        if (current && current.nonce) {
+            script.nonce = current.nonce;
+        }
+        if (onLoad) {
+            script.addEventListener('load', onLoad);
+        }
+        d.head.appendChild(script);
+    }
+
+    if (!w.Splide) {
+        missing.push(assets.splide);
+    }
+    if (!w.HryvinskyiBannerSlider) {
+        missing.push(assets.slider);
+    }
+    if (missing.length === 0) {
+        start();
+        return;
+    }
+
+    missing.forEach(function (src, index) {
+        inject(src, index === missing.length - 1 ? start : null);
+    });
+})(window, document);
+JS;
+?>
+<?= /* @noEscape */ $secureRenderer->renderTag('script', [], $script, false) ?>

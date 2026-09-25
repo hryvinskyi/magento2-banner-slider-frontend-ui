@@ -5,6 +5,115 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-09-25
+
+A breaking release on `hryvinskyi/magento2-banner-slider-api` and `hryvinskyi/magento2-banner-slider` 2.0. The block
+class, the template id `Hryvinskyi_BannerSliderFrontendUi::slider.phtml` and the `slider_id` / `location` arguments
+stay valid, so existing layout XML and widgets keep working. After deploying, flush the full page cache (and purge
+Varnish): cached pages still reference the removed `css/styles.css` and the 1.x `splideWidget` start-up.
+
+### Added
+- Works in themes without RequireJS: after every slider the block renders an inline script (through
+  `SecureHtmlRenderer`) that injects Splide and `js/banner-slider.js` once per page, in order, and starts the sliders,
+  including sliders added to the page later. With RequireJS the container's `data-mage-init` starts the slider through
+  `js/banner-slider-requirejs.js`.
+- `js/banner-slider.js`: a vanilla script (AMD module or `window.HryvinskyiBannerSlider`) with `mount()`,
+  `mountAll()`, `observe()` and `registerVideoProvider()`.
+- Plain-CSS stylesheet `css/banner-slider.css` with custom properties for colours and sizes.
+- Pause/play button for autoplay (WCAG 2.2.2); autoplay starts paused and background videos pause for visitors who
+  prefer reduced motion; every background video has its own pause/play button.
+- Videos in a slide that leaves the view are paused (native video, YouTube, Vimeo), and right after the slider
+  starts, videos in slides out of view are paused.
+- Background videos after the first slide wait for their slide: they render without `src` (the URL is in
+  `data-hbs-src`) and load and play when the slide is shown, unless the visitor paused them or prefers reduced
+  motion. Only the first slide's background video starts with the page.
+- `etc/csp_whitelist.xml`: the video player hosts (`www.youtube-nocookie.com`, `www.youtube.com`,
+  `player.vimeo.com`) as frame sources; depends on `Magento_Csp`.
+- A linked image without a title (a decorative image) gets `aria-label` with the banner name on its link, so the
+  link always has an accessible name.
+- Nested sliders: a slider only wires its own buttons, videos and slides, never those of a slider inside one of its
+  slides.
+- Click-to-load videos: a regular video shows its poster and a play button, and the provider's player is created only
+  when the visitor presses it. Starting it stops the slider's autoplay and moves focus to the player.
+- Translated Splide labels and carousel semantics on the container (`role="region"`, `aria-roledescription`, the
+  slider name); iframe titles; the "no video support" text is translated.
+- Extension points in `Api/Render/`: `SlideRendererInterface` (a pool in `di.xml`, one renderer per banner type),
+  `ContentFilterInterface`, `TemplateRendererInterface`; value objects `Api/Value/HtmlAttributes`, `SlideContext`,
+  `SlideLoading`.
+- The widget can place a slider by location: its slider field has an empty "-- Use the location --" choice, and its
+  options come from core.
+- `i18n/en_US.csv`.
+- Unit tests for the block, the view builders, the slide renderers, the content filter, the attribute pool and the
+  value objects; node tests for the scripts (`Test/Js/run.mjs`).
+
+### Changed
+- Splide options are applied as the server builds them, with no client-side defaults on top: `mediaQuery: 'min'`
+  with breakpoints from the slider's responsive items (smallest first), `rewind` for every type but `loop` (a fading
+  slider that plays automatically starts over instead of stopping), a slider with a video never loops, a single slide
+  never plays automatically, the transition speed comes from `di.xml`.
+- The first slide always loads eagerly with `fetchpriority="high"`; the slider's lazy-load setting now applies to the
+  slides after it. Splide's own lazy loading is off in favour of native `loading`.
+- Preload links follow what the picture shows at each viewport width, split by the slider's enabled breakpoints (from
+  a breakpoint's min width up to the next wider one), so overlapping breakpoint media queries never preload two crops
+  for one width. A width range with a crop of the banner preloads the crop's first format with its type; a range
+  without one preloads the banner image; neighbouring ranges with the same image share a link. Only the first slide's
+  links have high priority.
+- The `<img>` of a responsive picture is the banner image with its stored size, so a banner cropped for some
+  breakpoints only shows its full image, at the right height, where no crop applies; a banner without an image falls
+  back to its widest crop.
+- Images take their size from the banner's stored dimensions; nothing is read from disk while rendering. Media URLs
+  come only from the API's media URL resolver.
+- Alternative text is the banner title or empty, never the banner's internal name.
+- `ElementAttributePoolInterface` takes and returns `HtmlAttributes`. Attribute providers return
+  `array<string,string|int|bool|null>`; attribute names are checked, and event handler names (`on…`) are rejected.
+  `true` renders a bare attribute, `false` and `null` leave it out.
+- Link URLs are escaped as URLs and links opened in a new tab get `rel="noopener noreferrer"`.
+- Banner content goes through the CMS filter with a nesting limit; when filtering fails the content is left out
+  rather than shown with raw directives.
+- The same slider twice on a page gets two ids: `banner-slider-{id}`, then `banner-slider-{id}-2`. The class
+  `banner-slider-{id}` stays for custom CSS.
+- Custom CSS goes to the page head, once per slider.
+- Cache tags: a slider placed by id tags the page with that slider's tag even when it is not shown, so it appears once
+  its dates start; a slider placed by location tags the location. The block has no cache lifetime or cache key of its
+  own.
+- One banner that cannot be rendered (an unsafe stored path, an unknown video source) is logged and left out; the
+  other slides still render. A video banner whose image path is unusable loses only its poster.
+- `js/banner-slider.js` registers as an AMD module only when RequireJS is on the page; next to another AMD loader it
+  publishes `window.HryvinskyiBannerSlider`. The inline start-up script recognises RequireJS by a `require` function
+  with `defined`, injects Splide only when `window.Splide` is absent (a theme's own Splide is used) and the slider
+  script only when it is absent, and starts each slider on its own, so one failure logs a warning and the others
+  still start.
+- Requires PHP 8.3 or 8.4 and Magento 2.4.7 or later; every dependency has a version constraint.
+
+### Removed
+- **A theme override of `Hryvinskyi_BannerSliderFrontendUi::slider.phtml` must be redone.** The 1.x template called
+  block and view-model methods that no longer exist, and its markup changed: the 2.0 template renders a
+  `SliderView` (`$block->getSliderView()`), slides come pre-rendered from the slide renderers, and the 1.x classes
+  (`banner-slider-container`, `banner-slider`, `banner-slider-item`, `banner-slider-image-wrapper`,
+  `banner-slider-link`, `banner-slider-content-overlay`, `banner-slider-custom-content`) and the `data-slider-id` /
+  `data-banner-id` attributes are replaced by the `hbs-*` classes and `data-hbs-*` attributes listed in the README.
+  The `banner-slider-{id}` class and id stay for stored custom CSS.
+- Block `Block\Widget\Slider` methods: `getBanners()`, `getBannerRenderer()`, `getSliderConfig()` and the
+  `getCacheKeyInfo()` override (the block now has no cache key of its own). `getSlider()` and `getIdentities()` stay;
+  the constructor's dependencies changed.
+- `ViewModel/BannerRenderer` with all its public methods: `isVideoType()`, `isCustomType()`, `filterContent()`,
+  `getImageUrl()`, `getVideoProvider()`, `getVideoData()`, `getVideoHtml()`, `getImageHtml()`,
+  `preloadResponsiveCrops()`, `hasResponsiveCrops()`, `getResponsiveCrops()`, `getResponsiveImageHtml()`,
+  `getPreloadLinks()`, `getPreloadLinksForBanner()`, `getImageDimensions()`, `getLinkAttributes()`, `hasLink()`,
+  `getContainerAttributesHtml()`, `getSlideAttributesHtml()`.
+- `Api/ResponsiveImage/*` (`CropOrderInterface`, `PictureRendererInterface`, `PreloadLinkBuilderInterface`) and
+  `Model/ResponsiveImage/*` (`CropBreakpoint`, `CropOrder`, `PictureRenderer`, `PreloadLinkBuilder`): rendering moved
+  to templates, `Model/View/*`, `Model/Render/*` and `Model/Head/*`.
+- The slider no longer starts through the `splideWidget` component (`data-mage-init='{"splideWidget": …}'`); it
+  starts through `js/banner-slider-requirejs.js` or the inline start-up script.
+- `view/frontend/layout/default.xml`, which loaded a missing `_module.less` on every page, and `css/styles.less`.
+- The widget's missing placeholder image.
+- The dependencies on `hryvinskyi/magento2-base` and `hryvinskyi/magento2-media-uploader`.
+
+### Known limitations
+- A slider rendered inside a separately cached fragment (an ESI block) cannot add head elements (stylesheets,
+  preloads, custom CSS).
+
 ## [1.0.8] - 2026-09-24
 
 ### Fixed

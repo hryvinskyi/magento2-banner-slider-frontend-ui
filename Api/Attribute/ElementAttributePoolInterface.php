@@ -11,38 +11,57 @@ namespace Hryvinskyi\BannerSliderFrontendUi\Api\Attribute;
 
 use Hryvinskyi\BannerSliderApi\Api\Data\BannerInterface;
 use Hryvinskyi\BannerSliderApi\Api\Data\SliderInterface;
+use Hryvinskyi\BannerSliderFrontendUi\Api\Value\HtmlAttributes;
 
 /**
- * Interface for collecting and merging attributes from all registered providers
+ * The final attributes of the slider's elements: the element's own attributes with every provider's merged on top.
  *
  * @api
  */
 interface ElementAttributePoolInterface
 {
     /**
-     * Get merged container attributes from all providers
+     * Attributes of the slider container
      *
      * @param SliderInterface $slider
-     * @param array<BannerInterface> $banners
-     * @return array<string, string|bool|int>
+     * @param list<BannerInterface> $banners
+     * @param HtmlAttributes $base The container's own attributes
+     * @return HtmlAttributes
+     * @throws \InvalidArgumentException When a provider returns an attribute name that is not allowed
      */
-    public function getContainerAttributes(SliderInterface $slider, array $banners): array;
+    public function getContainerAttributes(
+        SliderInterface $slider,
+        array $banners,
+        HtmlAttributes $base
+    ): HtmlAttributes;
 
     /**
-     * Get merged slide attributes from all providers
+     * Attributes of a slide
      *
      * @param SliderInterface $slider
      * @param BannerInterface $banner
-     * @return array<string, string|bool|int>
+     * @param HtmlAttributes $base The slide's own attributes
+     * @return HtmlAttributes
+     * @throws \InvalidArgumentException When a provider returns an attribute name that is not allowed
      */
-    public function getSlideAttributes(SliderInterface $slider, BannerInterface $banner): array;
+    public function getSlideAttributes(
+        SliderInterface $slider,
+        BannerInterface $banner,
+        HtmlAttributes $base
+    ): HtmlAttributes;
 
     /**
-     * Get merged link attributes from all providers
+     * Attributes of a slide's link
      *
      * @param SliderInterface $slider
      * @param BannerInterface $banner
-     * @return array<string, string|bool|int>
+     * @param HtmlAttributes $base The link's own attributes
+     * @return HtmlAttributes
+     * @throws \InvalidArgumentException When a provider returns an attribute name that is not allowed
      */
-    public function getLinkAttributes(SliderInterface $slider, BannerInterface $banner): array;
+    public function getLinkAttributes(
+        SliderInterface $slider,
+        BannerInterface $banner,
+        HtmlAttributes $base
+    ): HtmlAttributes;
 }

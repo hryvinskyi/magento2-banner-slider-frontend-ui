@@ -1,0 +1,29 @@
+<?php
+/**
+ * Copyright (c) 2026. Volodymyr Hryvinskyi. All rights reserved.
+ * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
+ * GitHub: https://github.com/hryvinskyi
+ */
+
+declare(strict_types=1);
+
+use Hryvinskyi\BannerSliderFrontendUi\Model\View\PictureView;
+use Magento\Framework\Escaper;
+
+/**
+ * The image of a slide: a responsive picture when it has sources, otherwise a plain image.
+ *
+ * @var PictureView $view
+ * @var Escaper $escaper
+ */
+?>
+<?php if ($view->hasSources()): ?>
+    <picture class="hbs-slide__media">
+        <?php foreach ($view->getSources() as $source): ?>
+            <source<?= /* @noEscape */ $source->render($escaper) ?>>
+        <?php endforeach; ?>
+        <img<?= /* @noEscape */ $view->getImage()->render($escaper) ?>>
+    </picture>
+<?php else: ?>
+    <img<?= /* @noEscape */ $view->getImage()->render($escaper) ?>>
+<?php endif; ?>

@@ -1,0 +1,29 @@
+<?php
+/**
+ * Copyright (c) 2026. Volodymyr Hryvinskyi. All rights reserved.
+ * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
+ * GitHub: https://github.com/hryvinskyi
+ */
+
+declare(strict_types=1);
+
+use Hryvinskyi\BannerSliderFrontendUi\Model\View\ImageSlideView;
+use Magento\Framework\Escaper;
+
+/**
+ * An image slide: the picture, inside its link when the banner has one, then the banner content over it.
+ *
+ * @var ImageSlideView $view
+ * @var Escaper $escaper
+ */
+
+$link = $view->getLink();
+?>
+<?php if ($link !== null): ?>
+    <a<?= /* @noEscape */ $link->render($escaper) ?>><?= /* @noEscape */ $view->getMediaHtml() ?></a>
+<?php else: ?>
+    <?= /* @noEscape */ $view->getMediaHtml() ?>
+<?php endif; ?>
+<?php if ($view->getOverlayHtml() !== ''): ?>
+    <div class="hbs-slide__overlay"><?= /* @noEscape */ $view->getOverlayHtml() ?></div>
+<?php endif; ?>

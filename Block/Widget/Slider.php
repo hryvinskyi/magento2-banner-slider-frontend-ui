@@ -9,223 +9,204 @@ declare(strict_types=1);
 
 namespace Hryvinskyi\BannerSliderFrontendUi\Block\Widget;
 
-use Hryvinskyi\BannerSlider\Model\Banner;
-use Hryvinskyi\BannerSlider\Model\ResourceModel\Banner\CollectionFactory as BannerCollectionFactory;
-use Hryvinskyi\BannerSlider\Model\Slider as SliderModel;
+use Hryvinskyi\BannerSliderApi\Api\Banner\VisibleBannersProviderInterface;
 use Hryvinskyi\BannerSliderApi\Api\Data\BannerInterface;
 use Hryvinskyi\BannerSliderApi\Api\Data\SliderInterface;
-use Hryvinskyi\BannerSliderApi\Api\Slider\Locator\SliderLocatorInterface;
-use Hryvinskyi\BannerSliderFrontendUi\ViewModel\BannerRenderer;
-use Magento\Customer\Model\Context as CustomerContext;
-use Magento\Framework\App\Http\Context as HttpContext;
+use Hryvinskyi\BannerSliderApi\Api\Slider\SliderLocatorInterface;
+use Hryvinskyi\BannerSliderApi\Api\Value\LocationCode;
+use Hryvinskyi\BannerSliderFrontendUi\Api\Render\TemplateRendererInterface;
+use Hryvinskyi\BannerSliderFrontendUi\Model\Head\HeadAssetRegistrar;
+use Hryvinskyi\BannerSliderFrontendUi\Model\StorefrontContextProvider;
+use Hryvinskyi\BannerSliderFrontendUi\Model\View\SliderView;
+use Hryvinskyi\BannerSliderFrontendUi\Model\View\SliderViewBuilder;
 use Magento\Framework\DataObject\IdentityInterface;
-use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\View\Element\Template;
 use Magento\Widget\Block\BlockInterface;
+use Psr\Log\LoggerInterface;
 
 /**
- * Banner slider widget block
+ * Renders one banner slider, placed by layout XML or as a CMS widget.
+ *
+ * Placement arguments:
+ * - `slider_id`: a slider id; takes precedence when given;
+ * - `location`: a location code; the qualifying slider with the lowest priority value placed there renders.
+ * A slider renders only when it is enabled, visible to the store view and customer group, inside its active window,
+ * and has at least one slide that renders. Otherwise the block renders nothing.
+ *
+ * Caching: the block has no cache lifetime and no cache key of its own; the full page cache holds the page, and the
+ * cache tags below invalidate it:
+ * - the slider's tag and each shown banner's tag;
+ * - by location: the location's tag, whether or not a slider was found, so a slider saved into the location
+ *   refreshes the page;
+ * - by id: the requested slider's tag, whether or not it was found, so a slider whose active window opens later
+ *   refreshes pages cached while it was hidden;
+ * - the generic slider tag when no slider was found.
+ *
+ * Without a `template` argument the block renders `slider.phtml`, so a widget directive that names no template
+ * still shows the slider.
+ *
+ * Head elements (stylesheets, image preloads, custom CSS) are registered by the block before its template renders.
+ * After every slider container the block renders the bootstrap template, which starts the slider on pages without
+ * a module loader.
  */
 class Slider extends Template implements BlockInterface, IdentityInterface
 {
-    /**
-     * @var SliderInterface|null|false
-     */
-    private SliderInterface|null|false $slider = null;
+    public const DEFAULT_TEMPLATE = 'Hryvinskyi_BannerSliderFrontendUi::slider.phtml';
+    public const BOOTSTRAP_TEMPLATE = 'Hryvinskyi_BannerSliderFrontendUi::bootstrap.phtml';
+
+    private const ARGUMENT_SLIDER_ID = 'slider_id';
+    private const ARGUMENT_LOCATION = 'location';
 
     /**
-     * @var BannerInterface[]|null
+     * @var bool Whether the slider and its banners have been looked up
      */
-    private ?array $banners = null;
+    private bool $resolved = false;
+
+    /**
+     * @var SliderInterface|null
+     */
+    private ?SliderInterface $slider = null;
+
+    /**
+     * @var list<BannerInterface>
+     */
+    private array $banners = [];
+
+    /**
+     * @var bool Whether the view has been built
+     */
+    private bool $viewBuilt = false;
+
+    /**
+     * @var SliderView|null
+     */
+    private ?SliderView $view = null;
+
+    /**
+     * @var bool Whether the location argument has been parsed
+     */
+    private bool $locationParsed = false;
+
+    /**
+     * @var LocationCode|null
+     */
+    private ?LocationCode $location = null;
 
     /**
      * @param Template\Context $context
      * @param SliderLocatorInterface $sliderLocator
-     * @param BannerCollectionFactory $bannerCollectionFactory
-     * @param BannerRenderer $bannerRenderer
-     * @param HttpContext $httpContext
-     * @param array $data
+     * @param VisibleBannersProviderInterface $visibleBannersProvider
+     * @param StorefrontContextProvider $storefrontContextProvider
+     * @param SliderViewBuilder $sliderViewBuilder
+     * @param HeadAssetRegistrar $headAssetRegistrar
+     * @param TemplateRendererInterface $templateRenderer
+     * @param LoggerInterface $logger
+     * @param array<string,mixed> $data Block data; `template` defaults to the slider template
      */
     public function __construct(
         Template\Context $context,
         private readonly SliderLocatorInterface $sliderLocator,
-        private readonly BannerCollectionFactory $bannerCollectionFactory,
-        private readonly BannerRenderer $bannerRenderer,
-        private readonly HttpContext $httpContext,
+        private readonly VisibleBannersProviderInterface $visibleBannersProvider,
+        private readonly StorefrontContextProvider $storefrontContextProvider,
+        private readonly SliderViewBuilder $sliderViewBuilder,
+        private readonly HeadAssetRegistrar $headAssetRegistrar,
+        private readonly TemplateRendererInterface $templateRenderer,
+        private readonly LoggerInterface $logger,
         array $data = []
     ) {
-        parent::__construct($context, $data);
+        parent::__construct($context, $data + ['template' => self::DEFAULT_TEMPLATE]);
     }
 
     /**
-     * Get slider instance with store and customer group validation
+     * The `slider_id` argument as a slider id, or null when it is absent or not a positive whole number
      *
-     * Retrieves slider by ID if provided, otherwise falls back to location-based lookup.
+     * @return int|null
+     */
+    public function getSliderIdArgument(): ?int
+    {
+        $value = $this->getData(self::ARGUMENT_SLIDER_ID);
+        if (is_int($value)) {
+            return $value > 0 ? $value : null;
+        }
+
+        if (is_string($value) && preg_match('/^\s*[1-9]\d*\s*$/', $value) === 1) {
+            return (int)$value;
+        }
+
+        return null;
+    }
+
+    /**
+     * The `location` argument as a location code, or null when it is absent or not a valid code
+     *
+     * An invalid code is logged once per block.
+     *
+     * @return LocationCode|null
+     */
+    public function getLocationArgument(): ?LocationCode
+    {
+        if ($this->locationParsed) {
+            return $this->location;
+        }
+
+        $this->locationParsed = true;
+        $value = $this->getData(self::ARGUMENT_LOCATION);
+        if (!is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        try {
+            $this->location = new LocationCode(trim($value));
+        } catch (\InvalidArgumentException $e) {
+            $this->logger->warning('Banner slider: the location argument is not a valid location code.', [
+                'block' => $this->getNameInLayout(),
+                'exception' => $e,
+            ]);
+        }
+
+        return $this->location;
+    }
+
+    /**
+     * The slider this block renders, or null when none qualifies
      *
      * @return SliderInterface|null
-     * @throws NoSuchEntityException
      */
     public function getSlider(): ?SliderInterface
     {
-        if ($this->slider === null) {
-            $sliderId = (int)$this->getData('slider_id');
-            $location = (string)$this->getData('location');
+        $this->resolve();
 
-            if (!$sliderId && $location === '') {
-                $this->slider = false;
-                return null;
-            }
-
-            $storeId = (int)$this->_storeManager->getStore()->getId();
-            $customerGroupId = (int)$this->httpContext->getValue(CustomerContext::CONTEXT_GROUP);
-
-            if ($sliderId) {
-                $this->slider = $this->sliderLocator->getById($sliderId, $storeId, $customerGroupId) ?? false;
-            } else {
-                $this->slider = $this->sliderLocator->getByLocation($location, $storeId, $customerGroupId) ?? false;
-            }
-        }
-
-        return $this->slider ?: null;
+        return $this->slider;
     }
 
     /**
-     * Get banners for the slider
+     * The view the template renders, or null when there is nothing to render
      *
-     * @return BannerInterface[]
-     * @throws NoSuchEntityException
+     * @return SliderView|null
      */
-    public function getBanners(): array
+    public function getSliderView(): ?SliderView
     {
-        if ($this->banners !== null) {
-            return $this->banners;
+        if ($this->viewBuilt) {
+            return $this->view;
         }
 
-        $this->banners = [];
+        $this->viewBuilt = true;
         $slider = $this->getSlider();
-
-        if (!$slider) {
-            return $this->banners;
+        if ($slider === null || $this->banners === []) {
+            return null;
         }
 
-        $collection = $this->bannerCollectionFactory->create();
-        $collection->addSliderFilter($slider->getSliderId());
-        $collection->addActiveFilter();
-        $collection->addDateFilter();
-        $collection->addPositionOrder();
-
-        $this->banners = $collection->getItems();
-
-        // Preload responsive crops for all banners in a single query to avoid N+1
-        if (!empty($this->banners)) {
-            $this->bannerRenderer->preloadResponsiveCrops($this->banners);
+        try {
+            $this->view = $this->sliderViewBuilder->build($slider, $this->banners);
+        } catch (\InvalidArgumentException | LocalizedException | \JsonException $e) {
+            $this->logger->error('Banner slider: the slider could not be rendered.', [
+                'slider_id' => $slider->getSliderId(),
+                'exception' => $e,
+            ]);
         }
 
-        return $this->banners;
-    }
-
-    /**
-     * Get banner renderer view model
-     *
-     * @return BannerRenderer
-     */
-    public function getBannerRenderer(): BannerRenderer
-    {
-        return $this->bannerRenderer;
-    }
-
-    /**
-     * Get slider JSON configuration for Splide.js
-     *
-     * @return string
-     * @throws NoSuchEntityException
-     * @throws \JsonException
-     */
-    public function getSliderConfig(): string
-    {
-        $slider = $this->getSlider();
-
-        if (!$slider) {
-            return '{}';
-        }
-
-        $type = 'slide';
-        if ($slider->getEffect() === 'fade') {
-            $type = 'fade';
-        } elseif ($slider->isLoopEnabled()) {
-            $type = 'loop';
-        }
-
-        $bannerCount = count($this->getBanners());
-        $hasSingleBanner = $bannerCount <= 1;
-
-        $config = [
-            'type' => $type,
-            'perPage' => 1,
-            'perMove' => 1,
-            'autoplay' => !$hasSingleBanner && $slider->isAutoPlayEnabled(),
-            'interval' => $slider->getAutoPlayTimeout(),
-            'pauseOnHover' => true,
-            'pauseOnFocus' => true,
-            'arrows' => !$hasSingleBanner && $slider->isNavigationEnabled(),
-            'pagination' => !$hasSingleBanner && $slider->isPaginationEnabled(),
-            'lazyLoad' => $slider->isLazyLoadEnabled() ? 'nearby' : false,
-            'autoWidth' => $slider->isAutoWidthEnabled(),
-            'autoHeight' => $slider->isAutoHeightEnabled(),
-            'speed' => 400,
-            'rewind' => !$slider->isLoopEnabled() && $type !== 'fade',
-            'waitForTransition' => true,
-        ];
-
-        if ($slider->isResponsiveEnabled() && $slider->getResponsiveItems()) {
-            $responsiveItems = json_decode($slider->getResponsiveItems(), true);
-            if (is_array($responsiveItems)) {
-                $config['breakpoints'] = $this->convertResponsiveConfig($responsiveItems);
-            }
-        }
-
-        return json_encode($config, JSON_THROW_ON_ERROR);
-    }
-
-    /**
-     * Convert OWL Carousel responsive config to Splide breakpoints format
-     *
-     * @param array<int|string, array<string, mixed>> $owlResponsive
-     * @return array<int, array<string, mixed>>
-     */
-    private function convertResponsiveConfig(array $owlResponsive): array
-    {
-        $splideBreakpoints = [];
-
-        foreach ($owlResponsive as $breakpoint => $settings) {
-            $splideSettings = [];
-
-            if (isset($settings['items'])) {
-                $splideSettings['perPage'] = (int)$settings['items'];
-            }
-
-            if (isset($settings['nav'])) {
-                $splideSettings['arrows'] = (bool)$settings['nav'];
-            }
-
-            if (isset($settings['dots'])) {
-                $splideSettings['pagination'] = (bool)$settings['dots'];
-            }
-
-            if (isset($settings['autoplay'])) {
-                $splideSettings['autoplay'] = (bool)$settings['autoplay'];
-            }
-
-            if (isset($settings['gap'])) {
-                $splideSettings['gap'] = $settings['gap'];
-            }
-
-            if (!empty($splideSettings)) {
-                $splideBreakpoints[(int)$breakpoint] = $splideSettings;
-            }
-        }
-
-        return $splideBreakpoints;
+        return $this->view;
     }
 
     /**
@@ -234,47 +215,92 @@ class Slider extends Template implements BlockInterface, IdentityInterface
     public function getIdentities(): array
     {
         $identities = [];
-        $slider = $this->getSlider();
-
-        if ($slider) {
-            $identities[] = SliderModel::CACHE_TAG . '_' . $slider->getSliderId();
-
-            foreach ($this->getBanners() as $banner) {
-                $identities[] = Banner::CACHE_TAG . '_' . $banner->getBannerId();
-            }
+        $sliderId = $this->getSliderIdArgument();
+        if ($sliderId !== null) {
+            $identities[] = SliderInterface::CACHE_TAG . '_' . $sliderId;
         }
 
-        return $identities;
+        $location = $sliderId === null ? $this->getLocationArgument() : null;
+        if ($location !== null) {
+            $identities[] = $location->toCacheTag();
+        }
+
+        $slider = $this->getSlider();
+        if ($slider === null) {
+            $identities[] = SliderInterface::CACHE_TAG;
+
+            return array_values(array_unique($identities));
+        }
+
+        $identities[] = SliderInterface::CACHE_TAG . '_' . (int)$slider->getSliderId();
+        foreach ($this->banners as $banner) {
+            $identities[] = BannerInterface::CACHE_TAG . '_' . (int)$banner->getBannerId();
+        }
+
+        return array_values(array_unique($identities));
     }
 
     /**
-     * Get cache key info for block caching with customer group variation
+     * Render the slider, after registering its head elements, followed by the bootstrap
      *
-     * @return array<int, string|int|null>
-     * @throws NoSuchEntityException
-     */
-    public function getCacheKeyInfo(): array
-    {
-        return [
-            'BANNER_SLIDER_WIDGET',
-            $this->_storeManager->getStore()->getId(),
-            $this->_design->getDesignTheme()->getId(),
-            $this->httpContext->getValue(CustomerContext::CONTEXT_GROUP),
-            $this->getData('slider_id'),
-            $this->getData('location'),
-            md5($this->getTemplate() . $this->getNameInLayout())
-        ];
-    }
-
-    /**
-     * @inheritDoc
+     * @return string
      */
     protected function _toHtml(): string
     {
-        if (!$this->getSlider() || empty($this->getBanners())) {
+        $view = $this->getSliderView();
+        if ($view === null) {
             return '';
         }
 
-        return parent::_toHtml();
+        try {
+            $this->headAssetRegistrar->register($view);
+            $html = parent::_toHtml();
+            if (trim($html) === '') {
+                return '';
+            }
+
+            return $html . $this->templateRenderer->render(self::BOOTSTRAP_TEMPLATE);
+        } catch (LocalizedException $e) {
+            $this->logger->error('Banner slider: the slider could not be rendered.', [
+                'slider_id' => $view->getSlider()->getSliderId(),
+                'exception' => $e,
+            ]);
+
+            return '';
+        }
+    }
+
+    /**
+     * Look up the slider and its visible banners once
+     *
+     * @return void
+     */
+    private function resolve(): void
+    {
+        if ($this->resolved) {
+            return;
+        }
+
+        $this->resolved = true;
+        $sliderId = $this->getSliderIdArgument();
+        $location = $sliderId === null ? $this->getLocationArgument() : null;
+        if ($sliderId === null && $location === null) {
+            return;
+        }
+
+        try {
+            $context = $this->storefrontContextProvider->get();
+            $this->slider = $sliderId !== null
+                ? $this->sliderLocator->findById($sliderId, $context)
+                : $this->sliderLocator->findByLocation($location->getCode(), $context);
+            $foundId = $this->slider?->getSliderId();
+            $this->banners = $foundId !== null
+                ? $this->visibleBannersProvider->getForSlider($foundId, $context->getNow())
+                : [];
+        } catch (LocalizedException $e) {
+            $this->logger->error('Banner slider: the slider could not be looked up.', ['exception' => $e]);
+            $this->slider = null;
+            $this->banners = [];
+        }
     }
 }

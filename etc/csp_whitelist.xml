@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright (c) 2026. Volodymyr Hryvinskyi. All rights reserved.
+ * Author: Volodymyr Hryvinskyi <volodymyr@hryvinskyi.com>
+ * GitHub: https://github.com/hryvinskyi
+ */
+-->
+<!--
+    Hosts of the embedded video players a slide may render. Only frames are allowed: video posters are the banner's
+    own image from the store's media, never a thumbnail from the video provider.
+-->
+<csp_whitelist xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Csp:etc/csp_whitelist.xsd">
+    <policies>
+        <policy id="frame-src">
+            <values>
+                <value id="hryvinskyi_banner_slider_youtube_nocookie" type="host">www.youtube-nocookie.com</value>
+                <value id="hryvinskyi_banner_slider_youtube" type="host">www.youtube.com</value>
+                <value id="hryvinskyi_banner_slider_vimeo" type="host">player.vimeo.com</value>
+            </values>
+        </policy>
+    </policies>
+</csp_whitelist>

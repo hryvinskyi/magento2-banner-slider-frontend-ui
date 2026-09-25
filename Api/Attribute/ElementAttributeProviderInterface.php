@@ -13,41 +13,45 @@ use Hryvinskyi\BannerSliderApi\Api\Data\BannerInterface;
 use Hryvinskyi\BannerSliderApi\Api\Data\SliderInterface;
 
 /**
- * Interface for providing custom HTML attributes to slider elements
+ * Contributes HTML attributes to the slider container, its slides and the slide links.
+ *
+ * Providers are registered in the `providers` argument of the element attribute pool in `di.xml`. Values follow
+ * the `HtmlAttributes` rules: a string or integer renders escaped, `true` renders a bare attribute, `false` or
+ * `null` removes the attribute; classes are added to the element's own classes.
  *
  * @api
  */
 interface ElementAttributeProviderInterface
 {
     /**
-     * Get attributes for the slider container element
+     * Attributes for the slider container element
      *
      * @param SliderInterface $slider
-     * @param array<BannerInterface> $banners
-     * @return array<string, string|bool|int>
+     * @param list<BannerInterface> $banners
+     * @return array<string,string|int|bool|null>
      */
     public function getContainerAttributes(SliderInterface $slider, array $banners): array;
 
     /**
-     * Get attributes for individual slide elements
+     * Attributes for a slide element
      *
      * @param SliderInterface $slider
      * @param BannerInterface $banner
-     * @return array<string, string|bool|int>
+     * @return array<string,string|int|bool|null>
      */
     public function getSlideAttributes(SliderInterface $slider, BannerInterface $banner): array;
 
     /**
-     * Get attributes for banner link elements
+     * Attributes for a slide's link element
      *
      * @param SliderInterface $slider
      * @param BannerInterface $banner
-     * @return array<string, string|bool|int>
+     * @return array<string,string|int|bool|null>
      */
     public function getLinkAttributes(SliderInterface $slider, BannerInterface $banner): array;
 
     /**
-     * Get sort order for determining provider execution priority
+     * Position among providers; lower applies first, so a higher one overrides it
      *
      * @return int
      */

@@ -9,41 +9,71 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
 
-    <!-- Element Attribute Pool for extensible slider attributes -->
+    <!-- Element attributes: modules add providers to the pool -->
     <preference for="Hryvinskyi\BannerSliderFrontendUi\Api\Attribute\ElementAttributePoolInterface"
                 type="Hryvinskyi\BannerSliderFrontendUi\Model\Attribute\ElementAttributePool"/>
-
-    <!-- Configure ElementAttributePool with empty providers (modules can add their own) -->
     <type name="Hryvinskyi\BannerSliderFrontendUi\Model\Attribute\ElementAttributePool">
         <arguments>
             <argument name="providers" xsi:type="array"/>
         </arguments>
     </type>
 
-    <!-- Responsive image: crop order, <picture> rendering and preload links -->
-    <preference for="Hryvinskyi\BannerSliderFrontendUi\Api\ResponsiveImage\CropOrderInterface"
-                type="Hryvinskyi\BannerSliderFrontendUi\Model\ResponsiveImage\CropOrder"/>
-    <preference for="Hryvinskyi\BannerSliderFrontendUi\Api\ResponsiveImage\PictureRendererInterface"
-                type="Hryvinskyi\BannerSliderFrontendUi\Model\ResponsiveImage\PictureRenderer"/>
-    <preference for="Hryvinskyi\BannerSliderFrontendUi\Api\ResponsiveImage\PreloadLinkBuilderInterface"
-                type="Hryvinskyi\BannerSliderFrontendUi\Model\ResponsiveImage\PreloadLinkBuilder"/>
-
-    <type name="Hryvinskyi\BannerSliderFrontendUi\Model\ResponsiveImage\PictureRenderer">
+    <!-- Slide rendering: one renderer per banner type; the first that supports a type renders it -->
+    <preference for="Hryvinskyi\BannerSliderFrontendUi\Api\Render\SlideRendererInterface"
+                type="Hryvinskyi\BannerSliderFrontendUi\Model\Render\CompositeSlideRenderer"/>
+    <type name="Hryvinskyi\BannerSliderFrontendUi\Model\Render\CompositeSlideRenderer">
         <arguments>
-            <argument name="storeManager" xsi:type="object">Magento\Store\Model\StoreManagerInterface\Proxy</argument>
+            <argument name="renderers" xsi:type="array">
+                <item name="image" xsi:type="object" sortOrder="10">Hryvinskyi\BannerSliderFrontendUi\Model\Render\ImageSlideRenderer</item>
+                <item name="video" xsi:type="object" sortOrder="20">Hryvinskyi\BannerSliderFrontendUi\Model\Render\VideoSlideRenderer</item>
+                <item name="custom" xsi:type="object" sortOrder="30">Hryvinskyi\BannerSliderFrontendUi\Model\Render\CustomSlideRenderer</item>
+            </argument>
         </arguments>
     </type>
-    <type name="Hryvinskyi\BannerSliderFrontendUi\Model\ResponsiveImage\PreloadLinkBuilder">
+    <type name="Hryvinskyi\BannerSliderFrontendUi\Model\Render\VideoSlideRenderer">
         <arguments>
-            <argument name="storeManager" xsi:type="object">Magento\Store\Model\StoreManagerInterface\Proxy</argument>
+            <argument name="templates" xsi:type="array">
+                <item name="iframe" xsi:type="string">Hryvinskyi_BannerSliderFrontendUi::slide/video-iframe.phtml</item>
+                <item name="video" xsi:type="string">Hryvinskyi_BannerSliderFrontendUi::slide/video-local.phtml</item>
+            </argument>
+        </arguments>
+    </type>
+    <preference for="Hryvinskyi\BannerSliderFrontendUi\Api\Render\TemplateRendererInterface"
+                type="Hryvinskyi\BannerSliderFrontendUi\Model\Render\TemplateRenderer"/>
+    <preference for="Hryvinskyi\BannerSliderFrontendUi\Api\Render\ContentFilterInterface"
+                type="Hryvinskyi\BannerSliderFrontendUi\Model\Render\ContentFilter"/>
+
+    <!-- "Now" in UTC, the time zone of the stored active windows -->
+    <type name="Hryvinskyi\BannerSliderFrontendUi\Model\StorefrontContextProvider">
+        <arguments>
+            <argument name="clock" xsi:type="object">Hryvinskyi\BannerSlider\Model\Clock\SystemClock</argument>
         </arguments>
     </type>
 
-    <!-- Banner Renderer ViewModel -->
-    <type name="Hryvinskyi\BannerSliderFrontendUi\ViewModel\BannerRenderer">
+    <type name="Hryvinskyi\BannerSliderFrontendUi\Model\View\SplideConfigBuilder">
         <arguments>
-            <argument name="storeManager" xsi:type="object">Magento\Store\Model\StoreManagerInterface\Proxy</argument>
+            <argument name="speed" xsi:type="number">400</argument>
         </arguments>
     </type>
 
+    <!-- Static files of the slider: stylesheets for the page head, scripts for pages without a module loader -->
+    <type name="Hryvinskyi\BannerSliderFrontendUi\Model\View\FrontendAssets">
+        <arguments>
+            <argument name="stylesheets" xsi:type="array">
+                <item name="splide" xsi:type="string">Hryvinskyi_SplideJs::css/splide.min.css</item>
+                <item name="slider" xsi:type="string">Hryvinskyi_BannerSliderFrontendUi::css/banner-slider.css</item>
+            </argument>
+            <argument name="scripts" xsi:type="array">
+                <item name="splide" xsi:type="string">Hryvinskyi_SplideJs::js/splide.min.js</item>
+                <item name="slider" xsi:type="string">Hryvinskyi_BannerSliderFrontendUi::js/banner-slider.js</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <!-- Widget slider field: an empty choice, then every slider -->
+    <type name="Hryvinskyi\BannerSliderFrontendUi\Model\Source\WidgetSliderOptions">
+        <arguments>
+            <argument name="sliderOptions" xsi:type="object">Hryvinskyi\BannerSlider\Model\Source\SliderOptions</argument>
+        </arguments>
+    </type>
 </config>
