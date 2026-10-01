@@ -56,6 +56,23 @@ function parseSelector(selector) {
     return parsed;
 }
 
+/**
+ * The inline style of a fake element: custom properties only
+ */
+class FakeStyle {
+    constructor() {
+        this.properties = {};
+    }
+
+    setProperty(name, value) {
+        this.properties[name] = String(value);
+    }
+
+    getPropertyValue(name) {
+        return this.properties[name] ?? '';
+    }
+}
+
 class FakeElement {
     /**
      * @param {string} tag
@@ -71,6 +88,7 @@ class FakeElement {
         this.listeners = {};
         this.ownerDocument = null;
         this.calls = [];
+        this.style = new FakeStyle();
         children.forEach((child) => this.appendChild(child));
     }
 
@@ -679,6 +697,44 @@ test('mounting applies the configuration once and wires the pause toggle', () =>
     toggle.click();
     assert.deepEqual(instance.autoplayCalls, ['pause', 'play']);
     assert.equal(toggle.textContent, 'Pause autoplay');
+});
+
+test('autoplay progress is the share of the interval passed, kept between 0 and 1', () => {
+    const {api} = loadSlider();
+
+    assert.equal(api.autoplayProgress(0.25), 0.25);
+    assert.equal(api.autoplayProgress(0), 0);
+    assert.equal(api.autoplayProgress(1), 1);
+    assert.equal(api.autoplayProgress(1.4), 1);
+    assert.equal(api.autoplayProgress(-0.2), 0);
+    assert.equal(api.autoplayProgress('0.5'), 0.5);
+    assert.equal(api.autoplayProgress('soon'), 0);
+    assert.equal(api.autoplayProgress(undefined), 0);
+});
+
+test('the pause/play button follows the autoplay progress Splide reports', () => {
+    const {api} = loadSlider();
+    const element = sliderElement({}, [slide(), slide()]);
+    fakeDocument({}, element);
+
+    const instance = api.mount(element, fakeSplide());
+    const toggle = element.querySelector('[data-hbs-toggle]');
+
+    assert.equal(toggle.style.getPropertyValue('--hbs-autoplay-progress'), '');
+    instance.emit('autoplay:playing', 0.4);
+    assert.equal(toggle.style.getPropertyValue('--hbs-autoplay-progress'), '0.4');
+    instance.emit('autoplay:playing', 0);
+    assert.equal(toggle.style.getPropertyValue('--hbs-autoplay-progress'), '0', 'a new slide starts from empty');
+});
+
+test('a slider without autoplay does not follow autoplay progress', () => {
+    const {api} = loadSlider();
+    const element = sliderElement({splide: {type: 'slide', autoplay: false}});
+    fakeDocument({}, element);
+
+    const instance = api.mount(element, fakeSplide());
+
+    assert.equal(instance.events['autoplay:playing'], undefined);
 });
 
 test('a slider without autoplay leaves the toggle hidden', () => {

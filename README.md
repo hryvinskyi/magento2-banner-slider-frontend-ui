@@ -84,7 +84,8 @@ and slides, never those of the slider inside it.
 - A slider that plays automatically has a pause/play button (WCAG 2.2.2). Its label names the action a press
   performs. The slider's "Show Pause/Play Button" setting (on by default) can remove it; without it nothing on the
   page lets a visitor stop the slides, so switch it off only when the slider has another way to pause. Autoplay
-  still pauses while the pointer is over the slider or focus is inside it.
+  still pauses while the pointer is over the slider or focus is inside it. While autoplay runs, a ring along the
+  button's edge fills as the time to the next slide passes; it stops during a pause and is hidden while paused.
 - A visitor who prefers reduced motion gets autoplay paused (the button, when shown, starts it) and background videos
   paused behind a play button. Every background video has a pause/play button.
 - A slide that leaves the view pauses its videos: native videos directly, YouTube and Vimeo players through their
@@ -151,6 +152,7 @@ and slides, never those of the slider inside it.
 | `.hbs-slide__video-toggle` | The pause/play button of a background video.                             |
 
 Custom properties on `.hbs-slider`: `--hbs-control-size`, `--hbs-control-background`, `--hbs-control-color`,
+`--hbs-progress-color` and `--hbs-progress-width` (the autoplay ring; the control colour and 3px by default),
 `--hbs-focus-color`, `--hbs-dot-size`, `--hbs-dot-color`, `--hbs-dot-active-color`, `--hbs-video-background`,
 `--hbs-offset`.
 

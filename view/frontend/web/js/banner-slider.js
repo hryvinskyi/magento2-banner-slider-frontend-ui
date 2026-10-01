@@ -47,6 +47,8 @@
         SLIDE_SELECTOR = '.splide__slide',
         VISIBLE_SLIDE_SELECTOR = '.is-visible',
         REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)',
+        AUTOPLAY_PLAYING_EVENT = 'autoplay:playing',
+        AUTOPLAY_PROGRESS_PROPERTY = '--hbs-autoplay-progress',
         warned = false,
 
         /**
@@ -321,6 +323,34 @@
                 return state.paused;
             }
         };
+    }
+
+    /**
+     * The share of the autoplay interval that has passed, between 0 and 1; 0 for anything that is not a number
+     *
+     * @param {*} rate As Splide reports it
+     * @return {number}
+     */
+    function autoplayProgress(rate) {
+        var value = Number(rate);
+
+        return isFinite(value) ? Math.min(1, Math.max(0, value)) : 0;
+    }
+
+    /**
+     * Keep the `--hbs-autoplay-progress` custom property of the pause/play button at the share of the interval passed
+     *
+     * Splide reports the share on every frame while autoplay runs and nothing while it is paused, so the value holds
+     * still during a pause and starts again from 0 for every slide. The stylesheet draws it as a ring.
+     *
+     * @param {Object} splide
+     * @param {HTMLElement} button
+     * @return {void}
+     */
+    function showAutoplayProgress(splide, button) {
+        splide.on(AUTOPLAY_PLAYING_EVENT, function (rate) {
+            button.style.setProperty(AUTOPLAY_PROGRESS_PROPERTY, String(autoplayProgress(rate)));
+        });
     }
 
     /**
@@ -653,6 +683,7 @@
             controls.stopAutoplay = function () {
                 toggle.set(true);
             };
+            showAutoplayProgress(splide, button);
         }
 
         return splide;
@@ -760,6 +791,7 @@
         splideOptions: splideOptions,
         toggleView: toggleView,
         createToggle: createToggle,
+        autoplayProgress: autoplayProgress,
         controlMedia: controlMedia,
         pauseMediaIn: pauseMediaIn,
         pauseHiddenSlides: pauseHiddenSlides,

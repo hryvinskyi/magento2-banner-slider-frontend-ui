@@ -15,6 +15,8 @@
     --hbs-control-size: 44px;
     --hbs-control-background: rgba(255, 255, 255, 0.85);
     --hbs-control-color: #1a1a1a;
+    --hbs-progress-color: var(--hbs-control-color);
+    --hbs-progress-width: 3px;
     --hbs-focus-color: #005fcc;
     --hbs-dot-size: 10px;
     --hbs-dot-color: rgba(255, 255, 255, 0.6);
@@ -239,6 +241,39 @@ video.hbs-slide__player {
     border-width: 7px 0 7px 12px;
     border-color: transparent transparent transparent currentColor;
     transform: translate(-35%, -50%);
+}
+
+/*
+ * Autoplay progress: a ring along the edge of the slider's pause/play button, filled clockwise as the interval
+ * passes. The script keeps `--hbs-autoplay-progress` between 0 and 1; a paused slider shows no ring.
+ */
+.hbs-slider .hbs-slider__toggle::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    border-radius: 50%;
+    background: conic-gradient(
+        var(--hbs-progress-color) calc(var(--hbs-autoplay-progress, 0) * 360deg),
+        transparent 0
+    );
+    -webkit-mask: radial-gradient(
+        farthest-side,
+        transparent calc(100% - var(--hbs-progress-width)),
+        #000 calc(100% - var(--hbs-progress-width) + 0.5px)
+    );
+    mask: radial-gradient(
+        farthest-side,
+        transparent calc(100% - var(--hbs-progress-width)),
+        #000 calc(100% - var(--hbs-progress-width) + 0.5px)
+    );
+    pointer-events: none;
+}
+
+.hbs-slider .hbs-slider__toggle[data-hbs-state="paused"]::after {
+    content: none;
 }
 
 /* Arrows and pagination */

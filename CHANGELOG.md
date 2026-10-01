@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2026-10-01
+
+### Added
+- The slider's pause/play button shows the autoplay progress as a ring along its edge, filled clockwise as the time
+  to the next slide passes. It follows Splide's autoplay timer, so it stops while autoplay is paused (pointer over
+  the slider, focus inside it) and is hidden while the button shows "paused". Themes set its colour and width with
+  `--hbs-progress-color` and `--hbs-progress-width`.
+
 ## [2.1.0] - 2026-09-25
 
 Requires `hryvinskyi/magento2-banner-slider-api` 2.1 and `hryvinskyi/magento2-banner-slider` 2.1.

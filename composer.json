@@ -2,7 +2,7 @@
     "name": "hryvinskyi/magento2-banner-slider-frontend-ui",
     "description": "Banner Slider frontend module: slider widget and block, responsive pictures, video embeds and slider scripts",
     "type": "magento2-module",
-    "version": "2.1.0",
+    "version": "2.1.1",
     "license": "MIT",
     "authors": [
         {
